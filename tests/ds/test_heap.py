@@ -2,6 +2,7 @@ import random
 import unittest
 
 from dsa.data_structures import heap_operations
+from dsa.data_structures.heap import Heap
 
 
 def get_vals(n: int=100, seed=42, low=-100, high=100):
@@ -101,4 +102,32 @@ class TestSorting(unittest.TestCase):
                 f"Subsequent elements out of order at index {i} (values {a}, {b})"
             )
         #
+    #
+
+
+class TestHeapClass(unittest.TestCase):
+    def setUp(self):
+        self.heap = Heap(values=get_vals(n=200))
+        return super().setUp()
+    
+    def test_heap_property(self):
+        self.assertTrue(self.heap._satisfies_heap_invariant())
+    
+    def test_push(self):
+        n_items = len(self.heap)
+        for val in get_vals(seed=1337):
+            self.heap.push(val)
+            self.assertTrue(self.heap._satisfies_heap_invariant())
+            n_items += 1
+            self.assertEqual(n_items, len(self.heap))
+        #
+    
+    def test_pop(self):
+        for _ in range(len(self.heap)):
+            val = self.heap.pop()
+            self.assertTrue(all(self.heap.comp(val, other) for other in self.heap.A))
+            self.assertTrue(self.heap._satisfies_heap_invariant())
+        #
+        
+        self.assertRaises(IndexError, self.heap.pop)
     #
