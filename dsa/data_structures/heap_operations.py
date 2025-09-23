@@ -16,7 +16,7 @@ T = TypeVar("T", contravariant=True)
 
 
 @runtime_checkable
-class _Comparable(Protocol[T]):
+class Comparable(Protocol[T]):
     """This can be used as a constraint on a TypeVar to tell the type checker that
     a value will be of a type which supports comparison operators"""
 
@@ -26,7 +26,7 @@ class _Comparable(Protocol[T]):
     def __ge__(self, other: T) -> bool: ...
 
 
-C = TypeVar("C", bound=_Comparable)
+C = TypeVar("C", bound=Comparable)
 
 
 def _left(i: int) -> int:

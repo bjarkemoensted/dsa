@@ -1,25 +1,38 @@
+"""A heap implementation where the heap is implemented in a class of its own.
+This is a bit more cumbersome in some regards, but also has advantages. For example, options such as min vs max heap,
+and choice of a key function, are only passed once, when initializing a heap instance. This reduces the risk of forgetting
+to pass one or the other when e.g. pushing or popping elements, which can lead to violations of the heap property."""
+
 from typing import (
     Callable,
     Generic,
     Iterable,
+    overload,
     TypeVar
 )
 
 from dsa.data_structures.heap_operations import (
+    Comparable,
     iterate_parent_child_pairs
 )
 
 
 T = TypeVar("T")
+C = TypeVar("C", bound=Comparable)
 
 
-def _le(a, b) -> bool:
+def _le(a: C, b: C) -> bool:
     return a <= b
 
 
-def _ge(a, b) -> bool:
+def _ge(a: C, b: C) -> bool:
     return a >= b
 
+
+@overload
+def _make_comparison_func(min_: bool = True, key: None = None) -> Callable[[C, C], bool]: ...
+@overload
+def _make_comparison_func(min_: bool = True, key: Callable[[T], C] | None = ...) -> Callable[[T, T], bool]: ...
 
 def _make_comparison_func(min_: bool=True, key: Callable|None=None):
     """Creates a function for comparing two elements. Defaults to a function which returns a <= b,
@@ -29,7 +42,7 @@ def _make_comparison_func(min_: bool=True, key: Callable|None=None):
     
     relation = _le if min_ else _ge
     
-    def inner(a: T, b: T) -> bool:
+    def inner(a, b) -> bool:
         if key is None:
             return relation(a, b)
         else:
@@ -40,9 +53,10 @@ def _make_comparison_func(min_: bool=True, key: Callable|None=None):
 
 
 class Heap(Generic[T]):
-    """Represents a heap datastructure, supporting both min/max heaps, and an optional
-    key function (such that the heap invariant is maintained for all f(x) rather than
-    for all x)"""
+    """Implements a Heap class. The class supports both min- and max-heaps, and accepts an arbitrary key function, maintaining
+    the heap invariant on the result of applying the function to elements on the heap.
+    In other words, a standard min-heap will maintain the invariant parent <= child for all parent-child pairs, but if a key function f
+    is provided, the invariant will instead be f(parent) <= f(child)."""
     
     A: list[T]
     
