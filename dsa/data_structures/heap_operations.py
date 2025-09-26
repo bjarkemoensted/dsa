@@ -1,3 +1,5 @@
+import itertools
+import math
 from typing import (
     Iterator,
     Protocol,
@@ -60,6 +62,69 @@ def iterate_parent_child_pairs(size: int, start_index: int=0) -> Iterator[tuple[
             yield from iterate_parent_child_pairs(size, i)
         #
     #
+
+
+def iterate_levels(size: int) -> Iterator[list[int]]:
+    """Yields for each leven in a tree a list of the indices representing nodes at that level."""
+    
+    if size == 0:
+        return
+    
+    current = [0]
+    while current:
+        yield current
+        child_inds = [fun(ind) for ind in current for fun in (_left, _right)]
+        current = [child for child in child_inds if child < size]
+    #
+
+
+def _represent_binary_tree_as_ascii(A: list[T], padding=" ") -> str:
+    """Represents a binary tree as ASCII.
+    Works by defining an empty line for each level in the tree, then representing the root
+    at the middle of the topmost row, then repeatedly adding left and right children at the
+    middle of the left and right sides of the next level."""
+    
+    if not A:
+        return "<empty>"
+    
+    # Convert elements to strings and determine the number of characters needed to display each elem
+    A_s = [str(val) for val in A]
+    n_chars = max(map(len, A_s))
+    # We need to assign 2**n - 1 elems at the bottom row
+    n_elems = next(m for m in (2**n - 1 for n in itertools.count(1)) if m >= len(A_s))
+
+    # Container for ascii lines and skip size (horizontal distance to child nodes)
+    skip = (n_elems+1) // 2
+    lines: list[str] = []
+    
+    # tuples of (index in heap, index in ascii row). Start with just the root node
+    seeds = [(0, (n_elems - 1) // 2)]
+    next_ = []
+    
+    while seeds:
+        skip = skip // 2
+        line = n_elems*[n_chars*padding]
+        for ai, di in seeds:
+            # Start by adding the values at the current level
+            halfdiff = (n_chars - len(A_s[ai])) / 2
+            # Pad to ensure consistent width
+            sym = math.ceil(halfdiff)*padding + A_s[ai] + math.floor(halfdiff)*padding
+            line[di] = sym
+            
+            # add child nodes for next level
+            for direction, fun in ((-1, _left), (+1, _right)):
+                child = fun(ai)
+                if not 0 <= child < len(A_s):
+                    continue  # skip child indices that fall off A
+                next_.append((child, di + direction*skip))
+        
+        lines.append("".join(line))
+        seeds = next_
+        next_ = []
+        
+    res = "\n".join(lines)
+    
+    return res
 
 
 def _satisfies_heap_property(A: Sequence[C], min_heap=MIN_HEAP_DEFAULT) -> bool:

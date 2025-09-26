@@ -3,6 +3,7 @@ This is a bit more cumbersome in some regards, but also has advantages. For exam
 and choice of a key function, are only passed once, when initializing a heap instance. This reduces the risk of forgetting
 to pass one or the other when e.g. pushing or popping elements, which can lead to violations of the heap property."""
 
+import math
 from typing import (
     Callable,
     Generic,
@@ -13,6 +14,7 @@ from typing import (
 
 from dsa.data_structures.heap_operations import (
     Comparable,
+    _represent_binary_tree_as_ascii,
     iterate_parent_child_pairs
 )
 
@@ -158,4 +160,20 @@ class Heap(Generic[T]):
     
     def __len__(self):
         return len(self.A)
-    #
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.A})"
+    
+    def __str__(self):
+        return repr(self)
+    
+    @property
+    def height(self):
+        """The height of the heap"""
+        n_elems = len(self)
+        res = math.floor(math.log2(len(self))) + 1 if n_elems > 0 else 0
+        return res
+    
+    def ascii_tree(self) -> str:
+        return _represent_binary_tree_as_ascii(self.A)
+        

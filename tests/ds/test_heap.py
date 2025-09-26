@@ -131,3 +131,33 @@ class TestHeapClass(unittest.TestCase):
         
         self.assertRaises(IndexError, self.heap.pop)
     #
+    
+    def test_height(self):
+        for n in range(100):
+            vals = range(n)
+            depth_brute = 0
+            ind = 0
+            while ind < n:
+                depth_brute += 1
+                ind = heap_operations._left(ind)
+                
+            heap = Heap(vals)
+            self.assertEqual(depth_brute, heap.height)
+        #
+    
+    def test_ascii_representation(self):
+        n_vals = [0, 1, 3, 4, 15, 31, 32, 1023]
+        for n in n_vals:
+            values = get_vals(n=n)
+            heap = Heap(values)
+            ascii = heap.ascii_tree()
+            # Check that all lines have the same length in the ascii representation
+            self.assertEqual(len({len(line) for line in ascii.splitlines()}), 1)
+            
+            if n != 0:
+                # For non-empty heaps, check that all values on the heap appear in the tree
+                recovered = [int(elem) for line in ascii.splitlines() for elem in line.strip().split()]
+                self.assertEqual(sorted(recovered), sorted(values))
+            #
+        #
+    #
