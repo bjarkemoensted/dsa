@@ -1,1 +1,1 @@
-from .linear_structures import Stack, Queue
+from .linear import Stack, Queue, PriorityQueue

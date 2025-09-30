@@ -1,6 +1,6 @@
 import unittest
 
-from dsa.data_structures import Queue
+from dsa.data_structures.linear import Queue
 
 from .linear_basic_tests import TestLinear
 
@@ -8,12 +8,6 @@ from .linear_basic_tests import TestLinear
 class BasicQueueTest(TestLinear):
     def create_data_structure(self, *args, **kwargs) -> Queue[int]:
         return Queue(*args, **kwargs)
-    
-    def insert(self, data: Queue, val):
-        return data.enqueue(val)
-    
-    def delete(self, data: Queue):
-        return data.dequeue()
     #
 
 
