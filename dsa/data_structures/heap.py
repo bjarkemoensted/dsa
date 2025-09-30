@@ -14,6 +14,7 @@ from typing import (
 
 from dsa.data_structures.heap_operations import (
     Comparable,
+    MIN_HEAP_DEFAULT,
     _represent_binary_tree_as_ascii,
     iterate_parent_child_pairs
 )
@@ -62,16 +63,16 @@ class Heap(Generic[T]):
     
     A: list[T]
     
-    def __init__(self, values: Iterable[T]|None=None, min_: bool=True, key=None):
+    def __init__(self, values: Iterable[T]|None=None, min_heap: bool=MIN_HEAP_DEFAULT, key=None):
         """values: optional iterable of elements with which to initialize the heap.
         min_: Whether to use a min-heap (defaults to True).
         key: Optional callable to apply to elements before comparing (for basing the heap structure
             on some function of its elements)"""
         
         self.A = [v for v in values] if values is not None else []
-        self.min_heap = min_
+        self.min_heap = min_heap
         self.key = key
-        self.comp = _make_comparison_func(min_=min_, key=key)
+        self.comp = _make_comparison_func(min_=min_heap, key=key)
         self._heapify()
     
     def _satisfies_heap_invariant(self) -> bool:
