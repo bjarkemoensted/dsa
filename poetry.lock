@@ -150,7 +150,21 @@ pygments = ">=2.7.2"
 [package.extras]
 dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "requests", "setuptools", "xmlschema"]
 
+[[package]]
+name = "pytest-codeblocks"
+version = "0.17.0"
+description = "Test code blocks in your READMEs"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pytest_codeblocks-0.17.0-py3-none-any.whl", hash = "sha256:b2aed8e66c3ce65435630783b391e7c7ae46f80b8220d3fa1bb7c689b36e78ad"},
+    {file = "pytest_codeblocks-0.17.0.tar.gz", hash = "sha256:446e1babd182f54b4f113d567737a22f5405cade144c08a0085b2985247943d5"},
+]
+
+[package.dependencies]
+pytest = ">=7.0.0"
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "1248622d6eb4d3a70b75725512f67ba6d4d6696d81fbe799914f3cdd843e64d2"
+content-hash = "f268acbbf76ea6f83faba10f08823d6aa1c9987c5fd5aedb8db35f2721d51588"
