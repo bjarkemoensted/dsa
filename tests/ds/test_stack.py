@@ -1,20 +1,14 @@
 import unittest
 
-from dsa.data_structures import Stack
+from dsa.data_structures.linear import Stack
 
 from .linear_basic_tests import TestLinear
-
 
 
 class BasicStackTest(TestLinear):    
     def create_data_structure(self, *args, **kwargs) -> Stack[int]:
         return Stack(*args, **kwargs)
-    
-    def insert(self, data: Stack, val):
-        return data.push(val)
-    
-    def delete(self, data: Stack):
-        return data.pop()
+    #
 
 
 class StackTest(unittest.TestCase):    

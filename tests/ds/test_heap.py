@@ -1,23 +1,16 @@
-import random
 import unittest
 
 from dsa.data_structures import heap_operations
 from dsa.data_structures.heap import Heap
 
-
-def get_vals(n: int=100, seed=42, low=-100, high=100):
-        rs = random.Random()
-        rs.seed(seed)
-        res = [rs.randint(low, high) for _ in range(n)]
-        return res
-    #
+from ..utils import make_integers
 
 
 class TestHeap(unittest.TestCase):
     min_heap = True
     
     def get_vals(self):
-        return get_vals(n=100)
+        return make_integers(n=100)
     
     def setUp(self):
         self.vals = self.get_vals()
@@ -68,7 +61,7 @@ class TestHeap(unittest.TestCase):
         #
     
     def test_large_heap(self):
-        vals = get_vals(n=100_000)
+        vals = make_integers(n=100_000)
         heap_operations.heapify(vals, min_heap=self.min_heap)
         good = self.heap_property_satisfied(vals)
         self.assertTrue(good)
@@ -88,7 +81,7 @@ class TestMaxHeap(TestHeap):
 
 class TestSorting(unittest.TestCase):
     def setUp(self):
-        self.vals = get_vals(n=1000)
+        self.vals = make_integers(n=1000)
         return super().setUp()
     
     def test_heap_sort(self):
@@ -107,7 +100,7 @@ class TestSorting(unittest.TestCase):
 
 class TestHeapClass(unittest.TestCase):
     def setUp(self):
-        self.heap = Heap(values=get_vals(n=200))
+        self.heap = Heap(values=make_integers(n=200))
         return super().setUp()
     
     def test_heap_property(self):
@@ -115,7 +108,7 @@ class TestHeapClass(unittest.TestCase):
     
     def test_push(self):
         n_items = len(self.heap)
-        for val in get_vals(seed=1337):
+        for val in make_integers(seed=1337):
             self.heap.push(val)
             self.assertTrue(self.heap._satisfies_heap_invariant())
             n_items += 1
@@ -148,7 +141,7 @@ class TestHeapClass(unittest.TestCase):
     def test_ascii_representation(self):
         n_vals = [0, 1, 3, 4, 15, 31, 32, 1023]
         for n in n_vals:
-            values = get_vals(n=n)
+            values = make_integers(n=n)
             heap = Heap(values)
             ascii = heap.ascii_tree()
             # Check that all lines have the same length in the ascii representation
