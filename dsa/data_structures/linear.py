@@ -66,7 +66,6 @@ class Stack(BaseContainer, Generic[T]):
     An invariant here is a .top pointer which points to the most recently inserted element.
     This implementation uses zero indexing, so the top pointer is initialized at -1 rather than 0."""
     
-    
     arr: list[Optional[T]]
     
     def __init__(self, maxsize: int=-1):
