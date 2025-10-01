@@ -3,37 +3,29 @@ import math
 from typing import (
     Callable,
     Iterator,
-    Optional,
+    overload,
     Protocol,
     Sequence,
-    TypeAlias,
-    TypeVar,
-    runtime_checkable
+    TypeVar
 )
 
 
 # Whether to default to using min-heaps (set to False to use max-heap as default)
 MIN_HEAP_DEFAULT: bool = True
 
-# Typevar for making a protocol for types that are 'comparable', i.e. supports stuff like a <= b
-_P = TypeVar("_P", contravariant=True)
 
-# Type for key functions for comparing a function of elements instead of direct comparison
-keytype: TypeAlias = Callable
-
-
-@runtime_checkable
-class Comparable(Protocol[_P]):
+class Comparable(Protocol):
     """This can be used as a constraint on a TypeVar to tell the type checker that
     a value will be of a type which supports comparison operators"""
 
-    def __lt__(self, other: _P) -> bool: ...
-    def __le__(self, other: _P) -> bool: ...
-    def __gt__(self, other: _P) -> bool: ...
-    def __ge__(self, other: _P) -> bool: ...
+    def __lt__(self, other) -> bool: ...
+    def __le__(self, other) -> bool: ...
+    def __gt__(self, other) -> bool: ...
+    def __ge__(self, other) -> bool: ...
 
 
 C = TypeVar("C", bound=Comparable)
+T = TypeVar("T")
 
 
 def _left(i: int) -> int:
@@ -83,7 +75,7 @@ def iterate_levels(size: int) -> Iterator[list[int]]:
     #
 
 
-def _represent_binary_tree_as_ascii(A: list[_P], padding=" ") -> str:
+def _represent_binary_tree_as_ascii(A: list, padding=" ") -> str:
     """Represents a binary tree as ASCII.
     Works by defining an empty line for each level in the tree, then representing the root
     at the middle of the topmost row, then repeatedly adding left and right children at the
@@ -131,8 +123,11 @@ def _represent_binary_tree_as_ascii(A: list[_P], padding=" ") -> str:
     
     return res
 
-
-def _satisfies_heap_property(A: Sequence[C], min_heap=MIN_HEAP_DEFAULT, key: Optional[keytype]=None) -> bool:
+@overload
+def _satisfies_heap_property(A: Sequence[T], *, min_heap: bool=..., key: Callable[[T], C]) -> bool: ...
+@overload
+def _satisfies_heap_property(A: Sequence[C], *, min_heap: bool=..., key: None=...) -> bool: ...
+def _satisfies_heap_property(A: Sequence, min_heap=MIN_HEAP_DEFAULT, key=None):
     """Checks if a sequence of values satisfies the heap property: parent <= child for all parent/child pairs.
     The property is checked for all elements."""
     
@@ -148,8 +143,11 @@ def _satisfies_heap_property(A: Sequence[C], min_heap=MIN_HEAP_DEFAULT, key: Opt
     
     return True
 
-
-def _restore_downwards(A: list[C], i: int, stopat: int=-1, min_heap=MIN_HEAP_DEFAULT, key: Optional[keytype]=None):
+@overload
+def _restore_downwards(A: list[T], i: int, *, stopat: int=..., min_heap: bool=..., key: Callable[[T], C]) -> None: ...
+@overload
+def _restore_downwards(A: list[C], i: int, *, stopat: int=..., min_heap: bool=..., key: None=...) -> None: ...
+def _restore_downwards(A: list, i: int, stopat: int=-1, min_heap=MIN_HEAP_DEFAULT, key=None):
     """Assumes that child nodes of i already satisfy the heap property, but that the node at i
     might violate it.
     Allow the node to float down the heap, by swapping places with its largest child."""
@@ -176,8 +174,11 @@ def _restore_downwards(A: list[C], i: int, stopat: int=-1, min_heap=MIN_HEAP_DEF
         i = best
     #
 
-
-def _restore_upwards(A: list[C], i: int, min_heap=MIN_HEAP_DEFAULT, key: Optional[keytype]=None) -> None:
+@overload
+def _restore_upwards(A: list[T], i: int, *, min_heap: bool=..., key: Callable[[T], C]) -> None: ...
+@overload
+def _restore_upwards(A: list[C], i: int, *, min_heap: bool=..., key: None=...) -> None: ...
+def _restore_upwards(A: list, i: int, min_heap=MIN_HEAP_DEFAULT, key=None):
     """Assumes that all parent nodes of i satisfy the heap property, but the element at i
     might violate it.
     Repeatedly swaps values with parent nodes until the heap property is restored."""
@@ -195,14 +196,22 @@ def _restore_upwards(A: list[C], i: int, min_heap=MIN_HEAP_DEFAULT, key: Optiona
         #
     #
 
-def heapify(A: list[C], min_heap=MIN_HEAP_DEFAULT, key: Optional[keytype]=None) -> None:
+@overload
+def heapify(A: list[T], *, min_heap: bool=..., key: Callable[[T], C]) -> None: ...
+@overload
+def heapify(A: list[C], *, min_heap: bool=..., key: None=...) -> None: ...
+def heapify(A: list, min_heap=MIN_HEAP_DEFAULT, key=None):
     """Turns input list into a heap"""
     for i in reversed(range(len(A) // 2)):
         _restore_downwards(A, i, min_heap=min_heap, key=key)
     #
 
 
-def heappush(A: list[C], item, min_heap=MIN_HEAP_DEFAULT, key: Optional[keytype]=None) -> None:
+@overload
+def heappush(A: list[T], item, *, min_heap: bool=..., key: Callable[[T], C]) -> None: ...
+@overload
+def heappush(A: list[C], item, *, min_heap: bool=..., key: None=...) -> None: ...
+def heappush(A: list, item, min_heap=MIN_HEAP_DEFAULT, key=None):
     """Push an element onto the heap. Assumes the heap property is already satisfied."""
     # Insert at the end
     A.append(item)
@@ -211,7 +220,11 @@ def heappush(A: list[C], item, min_heap=MIN_HEAP_DEFAULT, key: Optional[keytype]
     _restore_upwards(A, ind, min_heap=min_heap, key=key)
 
 
-def heappop(A: list[C], min_heap=MIN_HEAP_DEFAULT, key: Optional[keytype]=None) -> C:
+@overload
+def heappop(A: list[T], *, min_heap: bool=..., key: Callable[[T], C]) -> T: ...
+@overload
+def heappop(A: list[C], *, min_heap: bool=..., key: None=...) -> C: ...
+def heappop(A: list, min_heap=MIN_HEAP_DEFAULT, key=None):
     """Pops an element from a heap."""
     # If we pop the only remaining element, just return that
     temp = A.pop()
@@ -225,8 +238,11 @@ def heappop(A: list[C], min_heap=MIN_HEAP_DEFAULT, key: Optional[keytype]=None) 
     _restore_downwards(A, i=root_ind, min_heap=min_heap, key=key)
     return res
 
-
-def heapsort(A: list[C], key: Optional[keytype]=None):
+@overload
+def heapsort(A: list[T], key: Callable[[T], C]) -> None: ...
+@overload
+def heapsort(A: list[C], key: None) -> None: ...
+def heapsort(A: list, key=None):
     """Sorts the input elements in-place, using the heapsort algorithm"""
     heapify(A, min_heap=False, key=key)
     heap_size = len(A)
