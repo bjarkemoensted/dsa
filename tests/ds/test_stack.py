@@ -1,6 +1,6 @@
 import unittest
 
-from dsa.data_structures.linear import Stack
+from dsa.data_structures.linear.stack import Stack
 
 from .linear_basic_tests import TestLinear
 
