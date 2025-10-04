@@ -1,6 +1,6 @@
 import unittest
 
-from dsa.data_structures.linear import PriorityQueue
+from dsa.data_structures.linear.priority_queue import PriorityQueue
 
 from .linear_basic_tests import TestLinear
 

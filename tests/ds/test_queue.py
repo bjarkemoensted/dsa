@@ -1,6 +1,6 @@
 import unittest
 
-from dsa.data_structures.linear import Queue
+from dsa.data_structures.linear.queue import Queue
 
 from .linear_basic_tests import TestLinear
 

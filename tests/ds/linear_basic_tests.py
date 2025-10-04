@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import Generic, TypeVar
 import unittest
 
-from dsa.data_structures.linear import BaseContainer
+from dsa.data_structures.linear.queue import BaseContainer
 
 
 T = TypeVar("T")
