@@ -36,10 +36,10 @@ class BaseContainer(ABC, Generic[T]):
         """Whether the data structure is currently full"""
         return self.size() == self.maxsize
     
-    def get(self) -> T:
+    def get(self, **kwargs) -> T:
         if self.empty():
             raise RuntimeError(f"{self.__class__.__name__} is empty")
-        return self._get()
+        return self._get(**kwargs)
     
     def put(self, item: T, **kwargs) -> None:
         if self.full():

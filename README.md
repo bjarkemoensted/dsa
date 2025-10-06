@@ -8,6 +8,7 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Queue](#queue)
   - [Heap](#heap)
   - [Priority Queue](#priority-queue)
+  - [Linked List](#linked-list)
 
 
 ## Data structures
@@ -107,7 +108,11 @@ Heaps can also display themselves as ASCII art trees with the `.ascii_tree()` me
 
 
 ### Priority Queue
+The priority queue is implemented using [heap operations](#heap) to insert an element with a specified priority (with lower priorities corresponding to more important elements).
+Oftentimes, simple implementations use tuples of an element's priority, and the element itself, in the underlying heap structure, because tuples are ordered in a recursive manner by the order of each or their elements.
+The issue with this is that the queued elements will then be compared against each other in cases where 2 elements have the same priorities. If the queue is used with instances of a class that doesn't support comparison operations, an error will be raised.
 
+The `PriorityQueue` implementation also stores tuples in its underlying heap, but uses compares them using a key function which only looks up the priority, avoiding using the queued elements as tiebreakers.
 
 **Example**:
 ```python
@@ -128,4 +133,25 @@ for item, priority in elems:
 
 most_important = q.get()
 assert most_important == 42
+```
+
+### Linked List
+Linked lists are implemented using a `Node` class which stores an element in the list, and pointers to the next and previous nodes.
+A sentinel node `nil` is used to represent the end of the list and point (via its `.next` and `.prev` attributes) to the head and tail of the list.
+
+The implementation uses naming similar to that of the `collections.deque` class, so methods like `appendleft` and `popleft` are available in addition to `append` and `pop`, for modifying the left end of a linked list.
+
+
+**Example**:
+```python
+from dsa.data_structures import LinkedList
+
+
+q: LinkedList[int] = LinkedList(range(5))
+
+last = q.pop()
+assert last == 4
+
+first = q.popleft()
+assert first == 0
 ```

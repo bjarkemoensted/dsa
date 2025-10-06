@@ -55,9 +55,13 @@ class TestLinkedList(unittest.TestCase):
         self.assertIsNotNone(found)
         self.assertEqual(found.key, "a")
 
+    def test_instantiate_with_list(self):
+        values = list(range(20))
+        a = LinkedList(values)
+        self.assertEqual(values, a.to_list())
+
     def test_delete_existing_node(self):
-        for v in [1, 2, 3]:
-            self.list.insert(v)
+        self.list.extend([1, 2, 3])
 
         self.list.remove(2)
         with self.assertRaises(ValueError):
@@ -70,7 +74,7 @@ class TestLinkedList(unittest.TestCase):
 
     def test_delete_head_node(self):
         for v in [1, 2, 3]:
-            self.list.insert(v)
+            self.list.append(v)
 
         self.list.remove(1)
         with self.assertRaises(ValueError):
@@ -78,10 +82,9 @@ class TestLinkedList(unittest.TestCase):
         n2 = self.list.search(2)
         self.assertIs(n2.prev, self.list.nil)
 
-
     def test_delete_tail_node(self):
         for v in [1, 2, 3]:
-            self.list.insert(v)
+            self.list.append(v)
 
         self.list.remove(3)
         with self.assertRaises(ValueError):
@@ -91,8 +94,8 @@ class TestLinkedList(unittest.TestCase):
         self.assertIs(n2.next, self.list.nil)
 
     def test_delete_nonexistent_value(self):
-        self.list.insert(1)
-        self.list.insert(2)
+        self.list.append(1)
+        self.list.append(2)
         with self.assertRaises(ValueError):
             self.list.remove(999)  # Should not raise
         
@@ -102,7 +105,7 @@ class TestLinkedList(unittest.TestCase):
     def test_insert_and_delete_until_empty(self):
         values = [5, 10, 15]
         for v in values:
-            self.list.insert(v)
+            self.list.append(v)
 
         for v in values:
             self.list.remove(v)
@@ -110,8 +113,8 @@ class TestLinkedList(unittest.TestCase):
         for v in values:
             with self.assertRaises(ValueError):
                 _ = self.list.search(v)
+            #
 
-        # Depending on your implementation, you may check head is None
         self.assertIs(self.list.head, self.list.nil)
         self.assertTrue(self.list.empty())
 
