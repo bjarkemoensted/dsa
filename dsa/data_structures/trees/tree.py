@@ -20,14 +20,16 @@ def iterate_depth_and_nodes(seed: TreeNode) -> Iterator[tuple[int, TreeNode]]:
 
 
 class TreeNode(Generic[T]):
+    """A node in a tree structure."""
+    
     def __init__(self, key: T, parent: TreeNode|None=None) -> None:
         self.key = key
-        self._parent = None
+        self._parent: TreeNode|None = None
         self.parent = parent
         self.children: list[TreeNode] = []
     
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.key})"
+        return f"{self.__class__.__name__}({repr(self.key)})"
     
     def __str__(self):
         return repr(self)
@@ -69,13 +71,10 @@ class TreeNode(Generic[T]):
         
         return node
     
-    def render_ascii(self, indentation=2) -> None:
-        # TODO need to use ├ for first n-1 children, └ for last. ─
-        for depth, node in iterate_depth_and_nodes(self):
-            prefix = "├" + (indentation*depth - 1)*"─"
-            s = f"{prefix} {node.key}"
-            print(s)
+    def iter_down(self) -> Iterator[TreeNode]:
+        """Iterate downwards, depth-first, through child nodes"""
+        yield self
+        for child in self.children:
+            yield from child.iter_down()
         #
     #
-
-
