@@ -157,9 +157,7 @@ assert first == 0
 
 ## Algorithms
 
-### For languages
-TODO CYK parsing.
+### Formal languages
+On the topic of formal languages, I will typically use Hopcroft, Motwani, and Ullman (HMU) as a reference:
+John E. Hopcroft, Rajeev Motwani, Jeffrey D. Ullman - Introduction to automata theory, languages, and computation (2001, Addison-Wesley)
 
-Reference:
-John E. Hopcroft, Rajeev Motwani, Jeffrey D. Ullman - Introduction to automata theory, languages, and computation (2001, Addison-Wesley) - libgen.li
-(p. 300 ish)
