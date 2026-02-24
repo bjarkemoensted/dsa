@@ -10,7 +10,6 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Priority Queue](#priority-queue)
   - [Linked List](#linked-list)
 
-
 ## Data structures
 A few elementary data structures have been implemented so far.
 Some classes share functionality such as inserting and removing elements - these derive from a base class which has abstract methods with agnostic terminology `_put`, `_get`, and `_size`. These are private because public versions (`put`, `get`, `size`) implement class-agnostic checks, such as throwing errors if attempting to get an element from an empty container. Any future thread-safe behaviors can also be implemented here. Child classes define aliases for the aforementioned methods to conform with conventions, such as stacks using `push` and `pop` for `put` and `get`, respectively.
@@ -155,3 +154,12 @@ assert last == 4
 first = q.popleft()
 assert first == 0
 ```
+
+## Algorithms
+
+### For languages
+TODO CYK parsing.
+
+Reference:
+John E. Hopcroft, Rajeev Motwani, Jeffrey D. Ullman - Introduction to automata theory, languages, and computation (2001, Addison-Wesley) - libgen.li
+(p. 300 ish)
