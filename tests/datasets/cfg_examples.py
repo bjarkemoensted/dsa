@@ -1,0 +1,117 @@
+"""Defines a test dataset consisting of some CNFs and a couple of sentences for each grammar,
+including a boolean indicating whether the sentences are members of the grammar"""
+
+from dataclasses import dataclass
+
+from dsa.algorithms.formal_languages.context_free import Nonterminal, productiontype
+
+
+@dataclass
+class Example:
+    name: str
+    productions: productiontype
+    start_symbol: Nonterminal
+    sentences: list[tuple[tuple[str, ...], bool]]
+
+
+S = Nonterminal("S")
+
+g_balanced = {
+    S: [
+        ("a", S, "b"),
+        (),  # epsilon
+    ]
+}
+
+sentences_balanced = [
+    (("a", "b"), True),
+    (("a", "a", "b", "b"), True),
+    (("a", "b", "a", "b"), False),
+    (("a",), False),
+    ((), True),
+]
+
+example_balanced = Example(
+    name="balanced",
+    productions=g_balanced,
+    start_symbol=S,
+    sentences=sentences_balanced
+)
+
+
+# B) Palindromes (non-CNF but CFG)
+S2 = Nonterminal("S")
+
+g_palindrome = {
+    S2: [
+        ("a", S2, "a"),
+        ("b", S2, "b"),
+        ("a",),
+        ("b",),
+        (),  # epsilon
+    ]
+}
+
+sentences_palindrome = [
+    ((), True),
+    (("a",), True),
+    (("b",), True),
+    (("a", "a"), True),
+    (("b", "b"), True),
+    (("a", "b", "a"), True),
+    (("b", "a", "b"), True),
+    (("a", "b"), False),
+    (("a", "a", "b"), False),
+    (("b", "a", "a", "b"), False),
+]
+
+example_palindrome = Example(
+    name="palindrome",
+    productions=g_palindrome,
+    start_symbol=S2,
+    sentences=sentences_palindrome
+)
+
+# C) Arithmetic Expressions
+E = Nonterminal("E")
+T = Nonterminal("T")
+F = Nonterminal("F")
+
+g_arith = {
+    E: [
+        (E, "+", T),
+        (T,),
+    ],
+    T: [
+        (T, "*", F),
+        (F,),
+    ],
+    F: [
+        ("(", E, ")"),
+        ("id",),
+    ],
+}
+
+sentences_arith = [
+    (("id",), True),
+    (("id", "+", "id"), True),
+    (("id", "+", "id", "*", "id"), True),
+    (("(", "id", "+", "id", ")", "*", "id"), True),
+    (("id", "*"), False),
+    (("+", "id"), False),
+    (("id", "*", "(", "id", "+", "id"), False),
+]
+
+example_arithmetic = Example(
+    name="arithmetic",
+    productions=g_arith,
+    start_symbol=E,
+    sentences=sentences_arith
+)
+
+
+all_examples = (
+    example_balanced,
+    example_palindrome,
+    example_arithmetic
+)
