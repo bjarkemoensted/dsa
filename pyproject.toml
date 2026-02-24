@@ -1,20 +1,31 @@
-[tool.poetry]
+[project]
 name = "dsa"
 version = "0.1.0"
 description = ""
-authors = ["bjarkemoensted <bjarkemoensted@gmail.com>"]
+authors = [{ name = "bjarkemoensted", email = "bjarkemoensted@gmail.com" }]
+requires-python = ">=3.12,<4"
 readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = ["pytest>=8.4.2,<9"]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-pytest = "^8.4.2"
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2,<9",
+    "pytest-codeblocks>=0.17.0,<0.18",
+    "pytest-mypy>=1.0.1,<2",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.4.2"
-pytest-codeblocks = "^0.17.0"
-pytest-mypy = "^1.0.1"
-anytree = "^2.13.0"
+[tool.uv]
+default-groups = "all"
+
+[tool.uv.build-backend]
+module-root = ""
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
