@@ -1,7 +1,11 @@
 from copy import deepcopy
 from dataclasses import dataclass
 import random
-from typing import Iterable, NamedTuple, TypeAlias
+from typing import Iterable, Iterator, NamedTuple, TypeAlias
+
+
+class InvalidGrammarError(Exception):
+    pass
 
 
 class Nonterminal(NamedTuple):
@@ -21,6 +25,20 @@ class Nonterminal(NamedTuple):
 productiontype: TypeAlias = dict[Nonterminal, list[tuple[Nonterminal|str, ...]]]
 
 
+def _iterate_symbols(production_rules: productiontype) -> Iterator[str|Nonterminal]:
+    """Given some production rules, iterates over all symbols."""
+    for nonterm, outputs in production_rules.items():
+        yield nonterm
+        for production in outputs:
+            if not isinstance(production, tuple):
+                raise TypeError  # just to make sure this isn't passed as a string (also iterable)
+            for symbol in production:
+                yield symbol
+            #
+        #
+    #
+
+
 def _get_distinct_instances[T](values: Iterable[object], target_class: type[T]) -> tuple[T, ...]:
     """Takes an iterable of objects, and returns a tuple of the distinct instances of the specified class."""
 
@@ -35,6 +53,23 @@ def _get_distinct_instances[T](values: Iterable[object], target_class: type[T]) 
     return tuple(keep)
 
 
+def check_grammar_is_valid(G: Grammar) -> None:
+    """Checks that a grammar is valid, raising InvalidGrammarError if not."""
+
+    # Check that terminals are strings
+    if not all(isinstance(term, str) for term in G.terminals):
+        raise InvalidGrammarError(f"Grammar must have string terminals. Got {G.terminals}")
+    # Check nonterminals
+    if not G.nonterminals or not all(isinstance(nonterm, Nonterminal) for nonterm in G.nonterminals):
+        raise InvalidGrammarError(f"Grammar must have 1+ Nonterminals. Got {G.nonterminals}")
+    
+    # Check for 'dead ends' (all nonterminals must have productions)
+    dead_ends = [nt for nt in G.nonterminals if nt not in G.productions]
+    if dead_ends:
+        raise InvalidGrammarError(f"Some nonterminals have no productions: {', '.join(map(str, dead_ends))}")
+    #
+
+
 @dataclass(init=False)
 class Grammar:
     nonterminals: tuple[Nonterminal, ...]
@@ -45,16 +80,14 @@ class Grammar:
     def __init__(self, production_rules: productiontype, start_symbol: Nonterminal) -> None:
         self.productions = deepcopy(production_rules)
         self.start_symbol = start_symbol
-        _all_symbols = [elem for item in production_rules.items() for elem in item]
+        _all_symbols = list(_iterate_symbols(self.productions))
         self.terminals = _get_distinct_instances(_all_symbols, str)
         self.nonterminals = _get_distinct_instances(_all_symbols, Nonterminal)
-
-    def __post_init__(self) -> None:
-        if not self.start_symbol in self.nonterminals:
-            raise ValueError(
-                f"The start symbol {self.start_symbol} is not among the nonterminals: {self.nonterminals}"
-            )
-        #
+        check_grammar_is_valid(self)
+ 
+    @property
+    def ascii(self) -> str:
+        return represent_grammar_as_string(self)
     #
 
 
@@ -63,7 +96,7 @@ def produce_random(
         random_state: random.Random|int|None=None,
         from_symbol: Nonterminal|None=None,
         depth: int=0,
-        target_max_depth=5
+        target_max_depth=20
     ) -> tuple[str, ...]:
     """Produce a random sentence using the specified grammar.
     grammar: The grammar to use
@@ -84,14 +117,19 @@ def produce_random(
     
     parts: list[str] = []
     
-    # Choose a random production. If we're getting too long, look for terminal productions
+    # Choose a random production.
     options = grammar.productions[from_symbol]
+    weights = [1.0 for _ in options]
+    
+    # If we're exceeding the target depth, choose only among terminal productions, if any
     if depth >= target_max_depth:
-        stopping_productions = [output for output in options if not any(isinstance(s, Nonterminal) for s in output)]
-        options = stopping_productions or options
+        all_terms = [all(isinstance(elem, Nonterminal) for elem in opt) for opt in options]
+        if any(all_terms):
+            weights = [int(at) for at in all_terms]
+        #
 
     # Use one of the productions for the current nonterminal at random        
-    choice = random_state.choice(options)
+    choice = random_state.choices(options, weights=weights, k=1)[0]
 
     # Keep string productions, recursively resolve nonterminal productions
     for elem in choice:
@@ -112,4 +150,21 @@ def produce_random(
     
     res = tuple(parts)
 
+    return res
+
+
+def represent_grammar_as_string(grammar: Grammar) -> str:
+    """Represents a grammar as a string, with production rules represented as e.g.
+    S → ('a', A, 'a').
+    Productions of the start symbol as displayed at the top."""
+    
+    nt_order = sorted(grammar.nonterminals, key = lambda nt: (nt != grammar.start_symbol, nt))
+    lines: list[str] = []
+
+    for nt in nt_order:
+        for prod in grammar.productions[nt]:
+            mapped = ('ε' if not prod else str(prod))
+            lines.append(f"{nt} → {mapped}")
+
+    res = "\n".join(lines)
     return res
