@@ -1,6 +1,6 @@
 import unittest
 
-from dsa.data_structures.linear.linked_list import LinkedList, Node
+from dsa.data_structures.linear.linked_list import LinkedList
 
 from .linear_basic_tests import TestLinear
 
