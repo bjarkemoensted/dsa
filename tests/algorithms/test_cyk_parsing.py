@@ -2,6 +2,7 @@ import random
 import unittest
 
 from dsa.algorithms.formal_languages import context_free
+import dsa.algorithms.formal_languages.parse_trees
 
 from ..datasets import cfg_examples
 
@@ -31,15 +32,17 @@ class TestCFG(unittest.TestCase):
         rs = random.Random()
         rs.seed(0)
         for grammar in self.grammars:
+            term_set = set(grammar.terminals)
             for _ in range(20):
-                prod = context_free.produce_random(
+                sentence = dsa.algorithms.formal_languages.parse_trees.produce_random_sentence(
                     grammar=grammar,
                     random_state=rs
                 )
 
-                self.assertIsInstance(prod, tuple)
-                for s in prod:
+                self.assertIsInstance(sentence, tuple)
+                for s in sentence:
                     self.assertIsInstance(s, str)
+                    self.assertIn(s, term_set)
                 #
             #
         #
