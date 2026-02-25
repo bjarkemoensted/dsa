@@ -40,7 +40,7 @@ example_balanced = Example(
 
 
 # B) Palindromes (non-CNF but CFG)
-S2 = Nonterminal("S")
+S2 = Nonterminal("S2")
 
 g_palindrome = {
     S2: [
@@ -110,7 +110,7 @@ example_arithmetic = Example(
 )
 
 
-S3 = Nonterminal("S")
+S3 = Nonterminal("S3")
 
 g_empty: productiontype = {
     S3: [()]
