@@ -31,7 +31,6 @@ class TestCFG(unittest.TestCase):
         rs = random.Random()
         rs.seed(0)
         for grammar in self.grammars:
-            print(grammar)
             for _ in range(20):
                 prod = context_free.produce_random(
                     grammar=grammar,
@@ -43,6 +42,21 @@ class TestCFG(unittest.TestCase):
                     self.assertIsInstance(s, str)
                 #
             #
+        #
+    
+    def test_ascii_repr(self):
+        for grammar in self.grammars:
+            s = grammar.ascii
+            self.assertIsInstance(s, str)
+            # Number of lines should be equal to the number of productions
+            self.assertEqual(len(s.splitlines()), sum(map(len, grammar.productions.values())))
+        #
+    
+    def test_invalid_grammar_error(self):
+        # Check error when attempting to initialize a 'dead end' grammar (nonterminal with no productions)
+        ex = cfg_examples.example_illegal
+        with self.assertRaises(context_free.InvalidGrammarError):
+            _ = context_free.Grammar(production_rules=ex.productions, start_symbol=ex.start_symbol)
         #
     #
 

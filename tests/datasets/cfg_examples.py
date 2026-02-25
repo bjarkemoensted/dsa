@@ -110,8 +110,42 @@ example_arithmetic = Example(
 )
 
 
+S3 = Nonterminal("S")
+
+g_empty: productiontype = {
+    S3: [()]
+}
+
+sentences_empty = [
+    ((), True),
+    (("a", "a"), False),
+    (("(", ")"), False),
+    (("",), False),
+]
+
+example_empty = Example(
+    name="empty",
+    productions=g_empty,
+    start_symbol=S3,
+    sentences=sentences_empty
+)
+
+
 all_examples = (
     example_balanced,
     example_palindrome,
-    example_arithmetic
+    example_arithmetic,
+    example_empty
+)
+
+
+example_illegal = Example(
+    name="deadend",
+    start_symbol=S,
+    productions={
+        S: [
+            (S, 'a', 'b', E)
+        ]
+    },
+    sentences=[]
 )
