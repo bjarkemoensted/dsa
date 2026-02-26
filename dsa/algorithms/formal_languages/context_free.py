@@ -8,6 +8,11 @@ class InvalidGrammarError(Exception):
     pass
 
 
+class DerivationError(Exception):
+    """Exception for when unable to continue deriving a sentence"""
+    pass
+
+
 class Nonterminal(NamedTuple):
     """A nonterminal.
     Storing this in a distinct class to avoid confusion with terminals (e.g. if relying on e.g. using
@@ -30,10 +35,14 @@ class Nonterminal(NamedTuple):
 productiontype: TypeAlias = dict[Nonterminal, list[tuple[Nonterminal|str, ...]]]
 
 
-def _iterate_symbols(production_rules: productiontype) -> Iterator[str|Nonterminal]:
-    """Given some production rules, iterates over all symbols."""
+def _iterate_symbols(production_rules: productiontype, include_keys=True) -> Iterator[str|Nonterminal]:
+    """Given some production rules, iterates over all symbols.
+    If include_keys is True (default), also yields the keys in the dictionary, i.e. the LHS nonterminals
+    in the production rules."""
+
     for nonterm, outputs in production_rules.items():
-        yield nonterm
+        if include_keys:
+            yield nonterm
         for production in outputs:
             if not isinstance(production, tuple):
                 raise TypeError  # just to make sure this isn't passed as a string (also iterable)
@@ -81,6 +90,38 @@ class Grammar:
     #
 
 
+def _get_useless_symbols(G: Grammar) -> list[Nonterminal]:
+    nonterms = set(G.nonterminals)
+    
+    # Determine reachable non-terminals
+    prods = _iterate_symbols(G.productions, include_keys=False)
+    reachable = {symbol for symbol in prods if isinstance(symbol, Nonterminal)}
+
+    # Determine generating non-terminals (nonterms that can produce a string)
+    generating: set[Nonterminal] = set()
+    for nt in G.productions.keys():
+        # Breadth-first search from each LHS in the production rules
+        visited = {nt}
+        front = [G.productions[nt]]
+        while front:
+            # Check every symbol in the productions of this nonterm
+            outputs = {symbol for elem in front for prod in elem for symbol in prod}
+            if any(isinstance(symbol, str) for symbol in outputs):
+                generating.add(nt)  # if one is a string, the nonterm has at least one string production
+                break
+            else:
+                # Otherwise, keep looking through unvisited nonterms
+                visit_next = {symbol for symbol in outputs if isinstance(symbol, Nonterminal) and symbol not in visited}
+                front = [G.productions[nt] for nt in visit_next]
+                visited |= visit_next
+            #
+        #
+
+    useful = reachable & generating
+    useless = nonterms - useful
+    return sorted(useless)
+
+
 def check_grammar_is_valid(G: Grammar) -> None:
     """Checks that a grammar is valid, raising InvalidGrammarError if not."""
 
@@ -90,11 +131,6 @@ def check_grammar_is_valid(G: Grammar) -> None:
     # Check nonterminals
     if not G.nonterminals or not all(isinstance(nonterm, Nonterminal) for nonterm in G.nonterminals):
         raise InvalidGrammarError(f"Grammar must have 1+ Nonterminals. Got {G.nonterminals}")
-    
-    # Check for 'dead ends' (all nonterminals must have productions)
-    dead_ends = [nt for nt in G.nonterminals if nt not in G.productions]
-    if dead_ends:
-        raise InvalidGrammarError(f"Some nonterminals have no productions: {', '.join(map(str, dead_ends))}")
     #
 
 

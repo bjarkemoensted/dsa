@@ -3,15 +3,28 @@ including a boolean indicating whether the sentences are members of the grammar"
 
 from dataclasses import dataclass
 
-from dsa.algorithms.formal_languages.context_free import Nonterminal, productiontype
+from dsa.algorithms.formal_languages.context_free import (
+    Grammar,
+    Nonterminal,
+    productiontype
+)
 
 
 @dataclass
 class Example:
+    """Container for example data. To collect example grammars and some sentences
+    to make testing simpler."""
+
     name: str
     productions: productiontype
     start_symbol: Nonterminal
     sentences: list[tuple[tuple[str, ...], bool]]
+
+    @property
+    def grammar(self) -> Grammar:
+        G = Grammar(production_rules=self.productions, start_symbol=self.start_symbol)
+        return G
+    #
 
 
 S = Nonterminal("S")
@@ -39,7 +52,6 @@ example_balanced = Example(
 )
 
 
-# B) Palindromes (non-CNF but CFG)
 S2 = Nonterminal("S2")
 
 g_palindrome = {
@@ -144,8 +156,18 @@ example_illegal = Example(
     start_symbol=S,
     productions={
         S: [
-            (S, 'a', 'b', E)
+            (E, 'a', 'b', S)
         ]
+    },
+    sentences=[]
+)
+
+example_useless = Example(
+    name="useless",
+    start_symbol=S,
+    productions={
+        S: [(S, 'a', 'b')],
+        E: [(S, 'b', 'c')]
     },
     sentences=[]
 )
