@@ -90,7 +90,7 @@ class Grammar:
     #
 
 
-def _get_useless_symbols(G: Grammar) -> list[Nonterminal]:
+def get_useless_symbols(G: Grammar) -> list[Nonterminal]:
     nonterms = set(G.nonterminals)
     
     # Determine reachable non-terminals
