@@ -3,6 +3,7 @@ import unittest
 
 from dsa.algorithms.formal_languages import context_free
 from dsa.algorithms.formal_languages import parse_trees
+from dsa.algorithms.formal_languages import cnf_tools
 
 from ..datasets import cfg_examples
 
@@ -60,7 +61,7 @@ class TestCFG(unittest.TestCase):
         examples = (cfg_examples.example_illegal, cfg_examples.example_useless)
         for ex in examples:
             G = ex.grammar
-            useless = context_free._get_useless_symbols(G)
+            useless = context_free.get_useless_symbols(G)
             self.assertGreater(len(useless), 0)
         #
     
@@ -77,8 +78,23 @@ class TestCFG(unittest.TestCase):
             )
         #
 
+    def test_useless_symbol_detection(self):
+        G = cfg_examples.example_useless.grammar
+        useless_symbols = context_free.get_useless_symbols(G)
+        self.assertGreater(len(useless_symbols), 0)
+
     def test_cnf_detection(self):
-        pass  # TODO implement test to check CNF
+        grammars_with_cnf_status = (
+            (cfg_examples.example_arithmetic, False),
+            (cfg_examples.example_balanced, False),
+            (cfg_examples.example_empty, False),
+            (cfg_examples.example_palindrome, False)
+        )
+
+        for ex, cnf in grammars_with_cnf_status:
+            self.assertIs(cnf_tools.grammar_is_cnf(ex.grammar), cnf)
+        #
+    #
 
 
 # TODO CHECK MEMBERSHIP
