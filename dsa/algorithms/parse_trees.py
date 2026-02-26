@@ -77,7 +77,7 @@ def grow_random_parse_tree(
     target_max_depth: Approximate max recusion depth desired. When exceeded, productions leading to terminals
         will be selected over nonterminals.
     """
-    
+
     # Create a node in the parse tree
     from_symbol = grammar.start_symbol if from_symbol is None else from_symbol
     node = ParseNode(symbol=from_symbol, parent=parent)
@@ -92,10 +92,9 @@ def grow_random_parse_tree(
         random_state.seed(_seed)
 
     # Choose a random production.
-    try:
-        options = grammar.productions[from_symbol]
-    except KeyError:
-        raise DerivationError(f"No production rule for symbol: {from_symbol}")
+    if from_symbol not in grammar.productions:
+        raise DerivationError(f"Symbol is a dead end: {from_symbol}")
+    options = grammar.productions[from_symbol]
     weights = [1.0 for _ in options]
 
     # If we're exceeding the target depth, choose only among terminal productions, if any

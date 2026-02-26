@@ -2,7 +2,7 @@ import random
 import unittest
 
 from dsa.algorithms.formal_languages import context_free
-import dsa.algorithms.formal_languages.parse_trees
+from dsa.algorithms.formal_languages import parse_trees
 
 from ..datasets import cfg_examples
 
@@ -34,7 +34,7 @@ class TestCFG(unittest.TestCase):
         for grammar in self.grammars:
             term_set = set(grammar.terminals)
             for _ in range(20):
-                sentence = dsa.algorithms.formal_languages.parse_trees.produce_random_sentence(
+                sentence = parse_trees.produce_random_sentence(
                     grammar=grammar,
                     random_state=rs
                 )
@@ -57,11 +57,28 @@ class TestCFG(unittest.TestCase):
     
     def test_invalid_grammar_error(self):
         # Check error when attempting to initialize a 'dead end' grammar (nonterminal with no productions)
-        ex = cfg_examples.example_illegal
-        with self.assertRaises(context_free.InvalidGrammarError):
-            _ = context_free.Grammar(production_rules=ex.productions, start_symbol=ex.start_symbol)
+        examples = (cfg_examples.example_illegal, cfg_examples.example_useless)
+        for ex in examples:
+            G = ex.grammar
+            useless = context_free._get_useless_symbols(G)
+            self.assertGreater(len(useless), 0)
         #
-    #
+    
+    def test_dead_end_exception(self):
+        # Check error when attempting to initialize a 'dead end' grammar (nonterminal with no productions)
+        G = cfg_examples.example_illegal.grammar
+
+        rs = random.Random()
+        rs.seed(0)
+        with self.assertRaises(context_free.DerivationError):
+            _ = parse_trees.produce_random_sentence(
+                grammar=G,
+                random_state=rs
+            )
+        #
+
+    def test_cnf_detection(self):
+        pass  # TODO implement test to check CNF
 
 
 # TODO CHECK MEMBERSHIP
