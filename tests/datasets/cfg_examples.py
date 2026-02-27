@@ -5,9 +5,9 @@ from dataclasses import dataclass
 
 from dsa.algorithms.formal_languages.context_free import (
     Grammar,
-    Nonterminal,
     productiontype
 )
+from dsa.algorithms.formal_languages.types import Nonterminal
 
 
 @dataclass

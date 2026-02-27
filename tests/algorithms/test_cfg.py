@@ -4,6 +4,7 @@ import unittest
 from dsa.algorithms.formal_languages import context_free
 from dsa.algorithms.formal_languages import parse_trees
 from dsa.algorithms.formal_languages import cnf_tools
+import dsa.algorithms.formal_languages.types
 
 from ..datasets import cfg_examples
 
@@ -71,7 +72,7 @@ class TestCFG(unittest.TestCase):
 
         rs = random.Random()
         rs.seed(0)
-        with self.assertRaises(context_free.DerivationError):
+        with self.assertRaises(dsa.algorithms.formal_languages.types.DerivationError):
             _ = parse_trees.produce_random_sentence(
                 grammar=G,
                 random_state=rs

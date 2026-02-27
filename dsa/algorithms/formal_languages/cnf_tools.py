@@ -8,9 +8,9 @@ from typing import Iterator, Literal, overload
 from dsa.algorithms.formal_languages.context_free import (
     get_useless_symbols,
     Grammar,
-    Nonterminal,
     productiontype
 )
+from dsa.algorithms.formal_languages.types import Nonterminal
 
 
 def grammar_is_cnf(G: Grammar, allow_empty_string_from_start=True) -> bool:

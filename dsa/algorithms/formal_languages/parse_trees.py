@@ -5,10 +5,9 @@ from typing import Iterable, Iterator
 import anytree  # type: ignore
 
 from dsa.algorithms.formal_languages.context_free import (
-    DerivationError,
-    Grammar,
-    Nonterminal
+    Grammar
 )
+from dsa.algorithms.formal_languages.types import DerivationError, Nonterminal
 
 
 class ParseNode(anytree.AnyNode):
