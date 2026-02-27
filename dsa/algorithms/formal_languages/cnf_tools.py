@@ -25,14 +25,17 @@ def grammar_is_cnf(G: Grammar) -> bool:
     # Check for empty productions, or rules that aren't splits (A → BC) or string productions (A → a)
     for prods in G.productions.values():
         for p in prods:
+            # Check empty
             empty = len(p) == 0
             if empty:
                 return False
             
+            # Check A → BC or A → a
             split = len(p) == 2 and all(isinstance(nt, Nonterminal) for nt in p)
             string_ = len(p) == 1 and all(isinstance(s, str) for s in p)
             if not (split or string_):
                 return False
             #
         #
+    
     return True
