@@ -84,11 +84,13 @@ class TestCFG(unittest.TestCase):
         self.assertGreater(len(useless_symbols), 0)
 
     def test_cnf_detection(self):
+        # Some example grammars and whether they're in CNF
         grammars_with_cnf_status = (
             (cfg_examples.example_arithmetic, False),
             (cfg_examples.example_balanced, False),
+            (cfg_examples.example_balanced_cnf, True),
             (cfg_examples.example_empty, False),
-            (cfg_examples.example_palindrome, False)
+            (cfg_examples.example_palindrome, False),
         )
 
         for ex, cnf in grammars_with_cnf_status:

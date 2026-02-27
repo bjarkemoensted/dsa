@@ -26,7 +26,7 @@ class Example:
         return G
     #
 
-
+### 'balanced' grammar producing a^n b^n,  e.g. "", "ab", "aabb", etc
 S = Nonterminal("S")
 
 g_balanced = {
@@ -44,6 +44,7 @@ sentences_balanced = [
     ((), True),
 ]
 
+
 example_balanced = Example(
     name="balanced",
     productions=g_balanced,
@@ -51,6 +52,46 @@ example_balanced = Example(
     sentences=sentences_balanced
 )
 
+### CNF version of balanced grammar, producing e.g. "ab", "aabb", etc (no empty string now)
+
+X = Nonterminal("X")
+A = Nonterminal("A")
+B = Nonterminal("B")
+
+
+g_balanced_cnf: productiontype = {
+    S: [
+        (A, X),
+        (A, B),
+    ],
+    X: [
+        (S, B),
+    ],
+    A: [
+        ("a",),
+    ],
+    B: [
+        ("b",),
+    ],
+}
+
+sentences_balanced_cnf = [
+    (("a", "b"), True),
+    (("a", "a", "b", "b"), True),
+    (("a", "a", "a", "b", "b", "b"), True),
+    (("a", "b", "a", "b"), False),
+    (("a",), False),
+    ((), False),
+]
+
+example_balanced_cnf = Example(
+    name="balanced_cnf",
+    productions=g_balanced_cnf,
+    start_symbol=S,
+    sentences=sentences_balanced_cnf
+)
+
+### Example grammar for palindromes
 
 S2 = Nonterminal("S2")
 
@@ -84,7 +125,8 @@ example_palindrome = Example(
     sentences=sentences_palindrome
 )
 
-# C) Arithmetic Expressions
+### Example grammar for arithmetic expressions
+
 E = Nonterminal("E")
 T = Nonterminal("T")
 F = Nonterminal("F")
@@ -121,6 +163,7 @@ example_arithmetic = Example(
     sentences=sentences_arith
 )
 
+### Example 'empty' grammar, which only produces the empty string (for testing edge cases etc)
 
 S3 = Nonterminal("S3")
 
@@ -142,14 +185,17 @@ example_empty = Example(
     sentences=sentences_empty
 )
 
+# Combining some examples of grammars for testing
 
 all_examples = (
     example_balanced,
+    example_balanced_cnf,
     example_palindrome,
     example_arithmetic,
     example_empty
 )
 
+### Example of an 'illegal' grammar, where a nonterminal has no productions.
 
 example_illegal = Example(
     name="deadend",
@@ -161,6 +207,8 @@ example_illegal = Example(
     },
     sentences=[]
 )
+
+### Example of a grammar with 'useless' symbols - a nonterminal is unreachable
 
 example_useless = Example(
     name="useless",
