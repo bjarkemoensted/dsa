@@ -40,6 +40,7 @@ sentences_balanced = [
     (("a", "b"), True),
     (("a", "a", "b", "b"), True),
     (("a", "b", "a", "b"), False),
+    (("a", "a", "a", "b", "b", "b"), True),
     (("a",), False),
     ((), True),
 ]
@@ -63,6 +64,7 @@ g_balanced_cnf: productiontype = {
     S: [
         (A, X),
         (A, B),
+        (),
     ],
     X: [
         (S, B),
@@ -75,20 +77,12 @@ g_balanced_cnf: productiontype = {
     ],
 }
 
-sentences_balanced_cnf = [
-    (("a", "b"), True),
-    (("a", "a", "b", "b"), True),
-    (("a", "a", "a", "b", "b", "b"), True),
-    (("a", "b", "a", "b"), False),
-    (("a",), False),
-    ((), False),
-]
 
 example_balanced_cnf = Example(
     name="balanced_cnf",
     productions=g_balanced_cnf,
     start_symbol=S,
-    sentences=sentences_balanced_cnf
+    sentences=sentences_balanced
 )
 
 ### Example grammar for palindromes
