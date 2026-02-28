@@ -1,12 +1,14 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, Unpack
 
 from dsa.algorithms.formal_languages.types import (
     InvalidGrammarError,
     Nonterminal,
     productiontype
 )
+
+from dsa.algorithms.formal_languages import parse_trees
 
 
 def _iterate_symbols(production_rules: productiontype, include_keys=True) -> Iterator[str|Nonterminal]:
@@ -61,7 +63,28 @@ class Grammar:
     @property
     def ascii(self) -> str:
         return represent_grammar_as_string(self)
-    #
+    
+    def random_sentence(self, **kwargs: Unpack[parse_trees.GenKwargs]) -> tuple[str, ...]:
+        """Produces a random sentence"""
+        res = parse_trees.produce_random_sentence(
+            from_symbol=self.start_symbol,
+            productions=self.productions,
+            **kwargs
+        )
+
+        return res
+    
+    def random_string(self, **kwargs: Unpack[parse_trees.GenKwargs]) -> str:
+        return "".join(self.random_sentence(**kwargs))
+
+    def brute_force_sentences(self, max_tokens: int) -> set[tuple[str, ...]]:
+        res = parse_trees.brute_force_sentences(
+            from_symbol=self.start_symbol,
+            productions=self.productions,
+            max_tokens=max_tokens
+        )
+
+        return res
 
 
 def get_useless_symbols(G: Grammar) -> list[Nonterminal]:

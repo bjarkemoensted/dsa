@@ -159,5 +159,4 @@ assert first == 0
 
 ### Formal languages
 On the topic of formal languages, I will typically use Hopcroft, Motwani, and Ullman (HMU) as a reference:
-John E. Hopcroft, Rajeev Motwani, Jeffrey D. Ullman - Introduction to automata theory, languages, and computation (2001, Addison-Wesley)
-
+John E. Hopcroft, Rajeev Motwani, Jeffrey D. Ullman - Introduction to automata theory, languages, and computation, 3rd edition (2006)
