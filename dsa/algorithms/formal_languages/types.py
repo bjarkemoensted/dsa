@@ -30,7 +30,8 @@ class Nonterminal(NamedTuple):
     #
 
 # Types for sentences and sentential forms
-sententialtype: TypeAlias = tuple[str|Nonterminal, ...]
+symboltype: TypeAlias = str|Nonterminal
+sententialtype: TypeAlias = tuple[symboltype, ...]
 sentencetype: TypeAlias = tuple[str, ...]
 
 # Alias for production rules (mapping each nonterminal to a list of productions)

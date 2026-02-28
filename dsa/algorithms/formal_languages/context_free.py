@@ -5,7 +5,9 @@ from typing import Iterable, Iterator, Unpack
 from dsa.algorithms.formal_languages.types import (
     InvalidGrammarError,
     Nonterminal,
-    productiontype
+    productiontype,
+    sententialtype,
+    symboltype,
 )
 
 from dsa.algorithms.formal_languages import parse_trees
@@ -60,6 +62,22 @@ class Grammar:
         self.nonterminals = _get_distinct_instances(_all_symbols, Nonterminal)
         check_grammar_is_valid(self)
  
+    def iter_rhs(self) -> Iterator[sententialtype]:
+        """Iterate over each individual production RHS"""
+        for prods in self.productions.values():
+            for p in prods:
+                yield p
+            #
+        #
+    
+    def iter_produced_symbols(self) -> Iterator[symboltype]:
+        """Iterate over each produced symbol"""
+        for p in self.iter_rhs():
+            for symbol in p:
+                yield symbol
+            #
+        #
+
     @property
     def ascii(self) -> str:
         return represent_grammar_as_string(self)
@@ -141,9 +159,10 @@ def represent_grammar_as_string(grammar: Grammar) -> str:
     lines: list[str] = []
 
     for nt in nt_order:
-        for prod in grammar.productions[nt]:
-            mapped = ('ε' if not prod else str(prod))
-            lines.append(f"{nt} → {mapped}")
+        these_prods = ['ε' if not symbol else str(symbol) for symbol in grammar.productions[nt]]
+        prod_rep = " | ".join(these_prods)
+            
+        lines.append(f"{nt} → {prod_rep}")
 
     res = "\n".join(lines)
     return res
