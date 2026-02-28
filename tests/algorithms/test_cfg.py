@@ -2,7 +2,6 @@ import random
 import unittest
 
 from dsa.algorithms.formal_languages import context_free
-from dsa.algorithms.formal_languages import parse_trees
 from dsa.algorithms.formal_languages import cnf_tools
 import dsa.algorithms.formal_languages.types
 
@@ -15,14 +14,17 @@ def is_producible_by_grammar(grammar, sentence):
 
 class TestCFG(unittest.TestCase):
     def setUp(self) -> None:
-        self.grammars = []
-        for example in cfg_examples.all_examples:
-            grammar = context_free.Grammar(
-                production_rules=example.productions,
-                start_symbol=example.start_symbol
-            )
-            self.grammars.append(grammar)
+        self.examples = (
+            cfg_examples.example_balanced,
+            cfg_examples.example_empty,
+            cfg_examples.example_arithmetic,
+            cfg_examples.example_palindrome
+        )
 
+        self.grammars = [
+            ex.grammar for ex in self.examples
+        ]
+        
         return super().setUp()
 
     def test_init(self) -> None:
@@ -36,10 +38,7 @@ class TestCFG(unittest.TestCase):
         for grammar in self.grammars:
             term_set = set(grammar.terminals)
             for _ in range(20):
-                sentence = parse_trees.produce_random_sentence(
-                    grammar=grammar,
-                    random_state=rs
-                )
+                sentence = grammar.random_sentence(random_state=rs)
 
                 self.assertIsInstance(sentence, tuple)
                 for s in sentence:
@@ -73,11 +72,25 @@ class TestCFG(unittest.TestCase):
         rs = random.Random()
         rs.seed(0)
         with self.assertRaises(dsa.algorithms.formal_languages.types.DerivationError):
-            _ = parse_trees.produce_random_sentence(
-                grammar=G,
+            _ = G.random_sentence(
                 random_state=rs
             )
         #
+    #
+
+
+class TestCNF(unittest.TestCase):
+    def setUp(self) -> None:
+        self.examples = (
+            cfg_examples.example_balanced,
+            cfg_examples.example_empty,
+            cfg_examples.example_arithmetic,
+            cfg_examples.example_palindrome
+        )
+
+        self.grammars = [
+            ex.grammar for ex in self.examples
+        ]
 
     def test_useless_symbol_detection(self):
         G = cfg_examples.example_useless.grammar
@@ -96,6 +109,20 @@ class TestCFG(unittest.TestCase):
 
         for ex, cnf in grammars_with_cnf_status:
             self.assertIs(cnf_tools.grammar_is_cnf(ex.grammar), cnf)
+        #
+    
+    def test_cnf_conversion_retains_grammar(self):
+        """Brute forces all sentences up to some length for some grammars.
+        Check that the same sentences are produced after converting the grammar
+        to CNF."""
+
+        n_tokens = 10
+
+        for G in self.grammars:
+            sentences = G.brute_force_sentences(n_tokens)
+            G_cnf = cnf_tools.chomsky_normal_form(G)
+            sentences_cnf = G_cnf.brute_force_sentences(n_tokens)
+            self.assertSetEqual(sentences, sentences_cnf)
         #
     #
 

@@ -1,4 +1,4 @@
-from typing import NamedTuple, TypeAlias
+from typing import NamedTuple, TypeAlias, TypeGuard
 
 
 class InvalidGrammarError(Exception):
@@ -29,6 +29,17 @@ class Nonterminal(NamedTuple):
         return self.name
     #
 
+# Types for sentences and sentential forms
+sententialtype: TypeAlias = tuple[str|Nonterminal, ...]
+sentencetype: TypeAlias = tuple[str, ...]
 
 # Alias for production rules (mapping each nonterminal to a list of productions)
-productiontype: TypeAlias = dict[Nonterminal, list[tuple[Nonterminal|str, ...]]]
+productiontype: TypeAlias = dict[Nonterminal, list[sententialtype]]
+
+
+def is_sentential(obj) -> TypeGuard[sententialtype]:
+    return isinstance(obj, tuple) and all(isinstance(elem, (str, Nonterminal)) for elem in obj)
+
+
+def is_sentence(obj) -> TypeGuard[sentencetype]:
+    return isinstance(obj, tuple) and all(isinstance(elem, str) for elem in obj)

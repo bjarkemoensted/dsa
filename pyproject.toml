@@ -15,6 +15,7 @@ dependencies = ["pytest>=8.4.2,<9"]
 
 [dependency-groups]
 dev = [
+    "line-profiler>=5.0.2",
     "pytest>=8.4.2,<9",
     "pytest-codeblocks>=0.17.0,<0.18",
     "pytest-mypy>=1.0.1,<2",

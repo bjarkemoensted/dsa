@@ -1,13 +1,23 @@
 from __future__ import annotations
 import random
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, TypedDict, Unpack
 
 import anytree  # type: ignore
 
-from dsa.algorithms.formal_languages.context_free import (
-    Grammar
+from dsa.algorithms.formal_languages.types import (
+    DerivationError,
+    is_sentence,
+    Nonterminal,
+    productiontype,
+    sentencetype,
+    sententialtype
 )
-from dsa.algorithms.formal_languages.types import DerivationError, Nonterminal
+
+
+class GenKwargs(TypedDict, total=False):
+    """Reusable kwargs type for sentence generation"""
+    random_state: random.Random | int | None
+    target_max_depth: int | None
 
 
 class ParseNode(anytree.AnyNode):
@@ -61,12 +71,12 @@ class ParseNode(anytree.AnyNode):
 
 
 def grow_random_parse_tree(
-        grammar: Grammar,
-        random_state: random.Random|int|None=None,
-        from_symbol: Nonterminal|str|None=None,
+        from_symbol: Nonterminal|str,
+        productions: productiontype,
         parent: ParseNode|None=None,
         depth: int=0,
-        target_max_depth=20
+        random_state: random.Random|int|None=None,
+        target_max_depth: int|None=None
     ) -> ParseNode:
     """Produce a parse tree for a random sentence using the specified grammar.
     grammar: The grammar to use
@@ -77,8 +87,8 @@ def grow_random_parse_tree(
         will be selected over nonterminals.
     """
     
+    target_max_depth = 20 if target_max_depth is None else target_max_depth
     # Create a node in the parse tree
-    from_symbol = grammar.start_symbol if from_symbol is None else from_symbol
     node = ParseNode(symbol=from_symbol, parent=parent)
     # If terminal, just return the node
     if not isinstance(from_symbol, Nonterminal):
@@ -92,7 +102,7 @@ def grow_random_parse_tree(
 
     # Choose a random production.
     try:
-        options = grammar.productions[from_symbol]
+        options = productions[from_symbol]
     except KeyError:
         raise DerivationError(f"No production rule for symbol: {from_symbol}")
     weights = [1.0 for _ in options]
@@ -110,9 +120,9 @@ def grow_random_parse_tree(
     # Keep string productions, recursively resolve nonterminal productions
     for elem in choice:
         grow_random_parse_tree(
-            grammar=grammar,
-            random_state=random_state,
             from_symbol=elem,
+            productions=productions,
+            random_state=random_state,
             parent=node,
             depth=depth+1,
             target_max_depth=target_max_depth
@@ -122,20 +132,88 @@ def grow_random_parse_tree(
 
 
 def produce_random_sentence(
-        grammar: Grammar,
-        random_state: random.Random|int|None=None,
+        from_symbol: Nonterminal,
+        productions: productiontype,
         depth: int=0,
-        target_max_depth=20
+        **kwargs: Unpack[GenKwargs]
     ) -> tuple[str, ...]:
     """Produce a random sentence using the specified grammar.
     See grow_random_parse_tree docstring for details."""
 
     root = grow_random_parse_tree(
-        grammar=grammar,
-        random_state=random_state,
+        from_symbol=from_symbol,
+        productions=productions,
         depth=depth,
-        target_max_depth=target_max_depth
+        **kwargs
     )
 
     res = tuple(root.iter_sentence())
+    return res
+
+
+def determine_length_bounds(productions: productiontype) -> dict[Nonterminal, int]:
+    """Takes production rules and returns a dict mapping each nonterminal to a lower bound
+    on the number of terminals in sentences it may produce"""
+    min_lengths = {nt: float("inf") for nt in productions.keys()}
+    changed = True
+    while changed:
+        changed = False
+        for nt, prods in productions.items():
+            bounds = [[1 if isinstance(symbol, str) else min_lengths[symbol] for symbol in p] for p in prods]
+            new_min = min(map(sum, bounds))
+            if new_min != min_lengths[nt]:
+                min_lengths[nt] = new_min
+                changed = True
+            #
+        #
+    #   
+
+    res = {nt: int(bound) for nt, bound in min_lengths.items()}
+    return res
+
+
+def brute_force_sentences(
+        from_symbol: Nonterminal,
+        productions: productiontype,
+        max_tokens: int
+    ) -> set[tuple[str, ...]]:
+    """Computes all sentences with length no greater than the specified
+    number of tokens."""
+    
+    lower_bounds = determine_length_bounds(productions)
+    res: set[sentencetype] = set()
+    queue: list[sententialtype] = [(from_symbol,)]
+    processed: set[sententialtype] = set(queue)
+    
+    while queue:
+        
+        current = queue.pop()
+        # Stop if the allowed number of tokens exceeds/will exceed target
+        sentence_lower_bound = sum(1 if isinstance(elem, str) else lower_bounds[elem] for elem in current)
+        if sentence_lower_bound > max_tokens:
+            continue
+        
+        # Add sentences to results
+        if is_sentence(current):
+            res.add(current)
+            continue
+        
+        # Select a random nonterminal
+        ind_nts = list((i, s) for i, s in enumerate(current) if isinstance(s, Nonterminal))
+        replace_ind, symbol = random.choice(ind_nts)
+
+        # Replace the nonterminal with all possible productions
+        for rhs in productions[symbol]:
+            new_sentential = (
+                *current[:replace_ind],  # symbols left of the non-terminal
+                *rhs,  # symbols produced by this non-terminal
+                *current[replace_ind+1:]  # symbols right of the non-terminal
+            )
+            # If this sentential form is new, add to queue
+            if new_sentential in processed:
+                continue
+            processed.add(new_sentential)
+            queue.append(new_sentential)
+        #
+
     return res
