@@ -8,12 +8,9 @@ from dsa.algorithms.formal_languages.types import (
     DerivationError,
     Nonterminal,
 )
+from dsa.algorithms.formal_languages.cyk import CYKParser
 
 from ..datasets import cfg_examples
-
-
-def is_producible_by_grammar(grammar, sentence):
-    raise NotImplementedError  # TODO FIX
 
 
 class TestCFG(unittest.TestCase):
@@ -217,27 +214,30 @@ class TestCNF(unittest.TestCase):
     #
 
 
-# TODO CHECK MEMBERSHIP
-# class TestCFGMembership(unittest.TestCase):
-
-#     def test_all_grammars(self):
-#         for grammar_name, entry in DATASET.items():
-#             grammar = entry["grammar"]
-#             sentences = entry["sentences"]
-
-#             for sentence, expected in sentences:
-#                 with self.subTest(grammar=grammar_name, sentence=sentence):
-#                     result = is_producible_by_grammar(grammar, sentence)
-#                     self.assertEqual(
-#                         result,
-#                         expected,
-#                         msg=f"Grammar '{grammar_name}' failed for sentence {sentence}",
-#                     )
-#                 #
-#             #
-#         #
-#     #
+def is_producible_by_grammar(grammar, sentence):
+    raise NotImplementedError  # TODO FIX
 
 
-# if __name__ == "__main__":
-#     unittest.main()
+class TestCFGMembership(unittest.TestCase):
+
+    def test_all_grammars(self):
+        for ex in cfg_examples.all_examples:
+            grammar_name = ex.name
+            parser = CYKParser(ex.grammar)
+
+            for sentence, producible in ex.sentences:
+                with self.subTest(grammar=grammar_name, sentence=sentence):
+                    result = parser.is_producible(sentence)
+                    self.assertEqual(
+                        result,
+                        producible,
+                        msg=f"Grammar '{grammar_name}' failed for sentence {sentence}",
+                    )
+                #
+            #
+        #
+    #
+
+
+if __name__ == "__main__":
+    unittest.main()

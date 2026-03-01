@@ -11,7 +11,10 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-dependencies = ["pytest>=8.4.2,<9"]
+dependencies = [
+    "numpy>=2.4.2",
+    "pytest>=8.4.2,<9",
+]
 
 [dependency-groups]
 dev = [
