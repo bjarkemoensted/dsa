@@ -109,7 +109,7 @@ sentences_palindrome = [
     (("b", "a", "b"), True),
     (("a", "b"), False),
     (("a", "a", "b"), False),
-    (("b", "a", "a", "b"), False),
+    (("b", "a", "a", "b"), True),
 ]
 
 example_palindrome = Example(
