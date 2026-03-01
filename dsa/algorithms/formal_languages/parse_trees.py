@@ -46,7 +46,7 @@ class ParseNode(anytree.AnyNode):
         return s
 
     def sentence(self) -> str:
-        """Returns the sentence from this node as a string"""
+        """Returns the sentence (yield) from this node as a string"""
         s = "".join(self.iter_sentence())
         return s
 

@@ -61,7 +61,7 @@ class Grammar:
         self.terminals = _get_distinct_instances(_all_symbols, str)
         self.nonterminals = _get_distinct_instances(_all_symbols, Nonterminal)
         check_grammar_is_valid(self)
- 
+
     def iter_rhs(self) -> Iterator[sententialtype]:
         """Iterate over each individual production RHS"""
         for prods in self.productions.values():
@@ -146,6 +146,12 @@ def check_grammar_is_valid(G: Grammar) -> None:
     # Check nonterminals
     if not G.nonterminals or not all(isinstance(nonterm, Nonterminal) for nonterm in G.nonterminals):
         raise InvalidGrammarError(f"Grammar must have 1+ Nonterminals. Got {G.nonterminals}")
+    
+    if len(G.nonterminals) != len(set(G.nonterminals)):
+        raise InvalidGrammarError("Nonterminals must be distinct")
+
+    if len(G.terminals) != len(set(G.terminals)):
+        raise InvalidGrammarError("Terminals must be distinct")
     #
 
 
