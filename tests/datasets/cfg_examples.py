@@ -87,12 +87,10 @@ example_balanced_cnf = Example(
 
 ### Example grammar for palindromes
 
-S2 = Nonterminal("S2")
-
 g_palindrome = {
-    S2: [
-        ("a", S2, "a"),
-        ("b", S2, "b"),
+    S: [
+        ("a", S, "a"),
+        ("b", S, "b"),
         ("a",),
         ("b",),
         (),  # epsilon
@@ -115,8 +113,39 @@ sentences_palindrome = [
 example_palindrome = Example(
     name="palindrome",
     productions=g_palindrome,
-    start_symbol=S2,
+    start_symbol=S,
     sentences=sentences_palindrome
+)
+
+### Palindrome grammar except on starting letter
+
+S0 = Nonterminal("S0")
+
+g_palindrome_offset: productiontype = {
+    S0: [
+        ("c", S)
+    ],
+    S: [
+        ("a", S, "a"),
+        ("b", S, "b"),
+        ("a",),
+        ("b",),
+        (),  # epsilon
+    ]
+}
+
+sentences_palindrome_offset = []
+for sentence, producible in sentences_palindrome:
+    sentences_palindrome_offset.append((sentence, False))
+    if producible:
+        sentences_palindrome_offset.append((("c",) + sentence, True))
+
+
+example_palindrome_offset = Example(
+    name="palindrome_offset",
+    productions=g_palindrome_offset,
+    start_symbol=S0,
+    sentences=sentences_palindrome_offset
 )
 
 ### Example grammar for arithmetic expressions
@@ -185,6 +214,7 @@ all_examples = (
     example_balanced,
     example_balanced_cnf,
     example_palindrome,
+    example_palindrome_offset,
     example_arithmetic,
     example_empty
 )

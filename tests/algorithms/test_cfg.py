@@ -214,10 +214,6 @@ class TestCNF(unittest.TestCase):
     #
 
 
-def is_producible_by_grammar(grammar, sentence):
-    raise NotImplementedError  # TODO FIX
-
-
 class TestCFGMembership(unittest.TestCase):
 
     def test_all_grammars(self):

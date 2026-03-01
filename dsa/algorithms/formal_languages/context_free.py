@@ -146,10 +146,10 @@ def check_grammar_is_valid(G: Grammar) -> None:
     # Check nonterminals
     if not G.nonterminals or not all(isinstance(nonterm, Nonterminal) for nonterm in G.nonterminals):
         raise InvalidGrammarError(f"Grammar must have 1+ Nonterminals. Got {G.nonterminals}")
-    
+
+    # Check that both terminals and nonterminals are distinct
     if len(G.nonterminals) != len(set(G.nonterminals)):
         raise InvalidGrammarError("Nonterminals must be distinct")
-
     if len(G.terminals) != len(set(G.terminals)):
         raise InvalidGrammarError("Terminals must be distinct")
     #
