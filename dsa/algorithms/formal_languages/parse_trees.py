@@ -175,13 +175,18 @@ def determine_length_bounds(productions: productiontype) -> dict[Nonterminal, in
 def brute_force_sentences(
         from_symbol: Nonterminal,
         productions: productiontype,
-        max_tokens: int
-    ) -> set[tuple[str, ...]]:
+        max_tokens: int,
+        only_distinct=True
+    ) -> Iterator[sentencetype]:
     """Computes all sentences with length no greater than the specified
-    number of tokens."""
+    number of tokens.
+    from_symbol (Nonterminal): The symbol from which to start producing
+    productions: the production rules (dict mapping nonterminals to tuples of Nonterminals/strings)
+    max_tokens: The maximum number of symbols with which to produce sentences
+    only_distinct: If true, only returns each distinct sentence once, with no double counting"""
     
     lower_bounds = determine_length_bounds(productions)
-    res: set[sentencetype] = set()
+    already_produced: set[sentencetype] = set()
     queue: list[sententialtype] = [(from_symbol,)]
     processed: set[sententialtype] = set(queue)
     
@@ -195,7 +200,10 @@ def brute_force_sentences(
         
         # Add sentences to results
         if is_sentence(current):
-            res.add(current)
+            use_sentence = not (only_distinct and current in already_produced)
+            if use_sentence:
+                yield current
+                already_produced.add(current)
             continue
         
         # Select a random nonterminal
@@ -210,10 +218,10 @@ def brute_force_sentences(
                 *current[replace_ind+1:]  # symbols right of the non-terminal
             )
             # If this sentential form is new, add to queue
-            if new_sentential in processed:
+            skip_sentential = only_distinct and (new_sentential in processed)
+            if skip_sentential:
                 continue
             processed.add(new_sentential)
             queue.append(new_sentential)
         #
-
-    return res
+    #

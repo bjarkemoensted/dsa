@@ -1,14 +1,16 @@
+from collections import Counter
 import random
 import typing
 import unittest
 
-from dsa.algorithms.formal_languages import context_free
 from dsa.algorithms.formal_languages import cnf_tools
+from dsa.algorithms.formal_languages import context_free
+from dsa.algorithms.formal_languages.cyk import CYKParser
 from dsa.algorithms.formal_languages.types import (
     DerivationError,
     Nonterminal,
 )
-from dsa.algorithms.formal_languages.cyk import CYKParser
+from dsa.algorithms.formal_languages.parse_trees import brute_force_sentences
 
 from ..datasets import cfg_examples
 
@@ -206,16 +208,15 @@ class TestCNF(unittest.TestCase):
         n_tokens = 10
 
         for G in self.grammars:
-            sentences = G.brute_force_sentences(n_tokens)
+            sentences = set(G.brute_force_sentences(n_tokens))
             G_cnf = cnf_tools.chomsky_normal_form(G)
-            sentences_cnf = G_cnf.brute_force_sentences(n_tokens)
+            sentences_cnf = set(G_cnf.brute_force_sentences(n_tokens))
             self.assertSetEqual(sentences, sentences_cnf)
         #
     #
 
 
 class TestCFGMembership(unittest.TestCase):
-
     def test_all_grammars(self):
         for ex in cfg_examples.all_examples:
             grammar_name = ex.name
@@ -233,6 +234,43 @@ class TestCFGMembership(unittest.TestCase):
             #
         #
     #
+
+
+class TestParseForests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.examples = cfg_examples.all_examples
+
+    def test_parse_forests_match_productions(self):
+        """Check that parse forests generate one parse tree for each
+        distinct derivation of a sentence"""
+        
+        for ex in self.examples:
+            G = ex.grammar
+            parser = CYKParser(G)
+            max_tokens = 6
+            sentences = brute_force_sentences(
+                from_symbol=G.start_symbol,
+                productions=G.productions,
+                only_distinct=False,
+                max_tokens=max_tokens
+            )
+
+            counts = Counter(sentences)
+            for sentence, multiplicity in counts.items():
+                forest = parser.make_parse_forest(sentence=sentence)
+                n_distinct_trees = 0
+                for tree in forest:
+                    sentence_reconstructed = tuple(tree.iter_sentence())
+                    self.assertEqual(sentence_reconstructed, sentence)
+                    n_distinct_trees += 1
+                
+                msg = (
+                    f"* Error in example: {ex.name} *"
+                    f"Grammar {G} provided {n_distinct_trees} for sentence {sentence}."
+                    f"Expected {multiplicity}."
+                )
+                self.assertEqual(n_distinct_trees, multiplicity, msg=msg)
+
 
 
 if __name__ == "__main__":
