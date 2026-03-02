@@ -208,6 +208,30 @@ example_empty = Example(
     sentences=sentences_empty
 )
 
+### Example of an ambiguous grammar with multiple ways of deriving strings
+
+g_ambiguous: productiontype = {
+    S: [
+        (S, S),
+        ("a",),
+    ]
+}
+
+sentences_ambiguous = [
+    (("a",), True),
+    (("a", "a"), True),
+    (("a", "a", "a"), True),   # ambiguous (2 parses)
+    (("a", "a", "a", "a"), True),  # even more parses
+    ((), False),
+]
+
+example_ambiguous = Example(
+    name="ambiguous_ss",
+    productions=g_ambiguous,
+    start_symbol=S,
+    sentences=sentences_ambiguous
+)
+
 # Combining some examples of grammars for testing
 
 all_examples = (
@@ -216,7 +240,8 @@ all_examples = (
     example_palindrome,
     example_palindrome_offset,
     example_arithmetic,
-    example_empty
+    example_empty,
+    example_ambiguous
 )
 
 ### Example of an 'illegal' grammar, where a nonterminal has no productions.
