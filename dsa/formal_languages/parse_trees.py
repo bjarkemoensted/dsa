@@ -6,7 +6,6 @@ from typing import Iterable, Iterator, TypedDict, Unpack
 import anytree  # type: ignore
 
 from dsa.formal_languages.types import (
-    DerivationError,
     is_sentence,
     Nonterminal,
     productiontype,
@@ -117,10 +116,7 @@ def grow_random_parse_tree(
         random_state.seed(_seed)
 
     # Choose a random production.
-    try:
-        options = productions[from_symbol]
-    except KeyError:
-        raise DerivationError(f"No production rule for symbol: {from_symbol}")
+    options = productions[from_symbol]
     weights = [1.0 for _ in options]
 
     # If we're exceeding the target depth, choose only among terminal productions, if any
