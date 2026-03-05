@@ -2,15 +2,16 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Iterable, Iterator, Unpack
 
-from dsa.algorithms.formal_languages.types import (
+from dsa.formal_languages.types import (
     InvalidGrammarError,
     Nonterminal,
     productiontype,
+    sentencetype,
     sententialtype,
     symboltype,
 )
 
-from dsa.algorithms.formal_languages import parse_trees
+from dsa.formal_languages import parse_trees
 
 
 def _iterate_symbols(production_rules: productiontype, include_keys=True) -> Iterator[str|Nonterminal]:
@@ -46,7 +47,7 @@ def _get_distinct_instances[T](values: Iterable[object], target_class: type[T]) 
 
 
 @dataclass(init=False)
-class Grammar:
+class CFG:
     """Represents a context-free grammar."""
 
     nonterminals: tuple[Nonterminal, ...]
@@ -71,7 +72,11 @@ class Grammar:
         #
     
     def iter_produced_symbols(self) -> Iterator[symboltype]:
-        """Iterate over each produced symbol"""
+        """Iterate over each produced symbol, i.e. each individual symbol
+        in each production, so if the grammar is
+            S → a | ab | B
+            B → c | ε
+        this will iterate over ('a',), ('a', 'b'), (B,), ('c',), ()"""
         for p in self.iter_rhs():
             for symbol in p:
                 yield symbol
@@ -82,7 +87,7 @@ class Grammar:
     def ascii(self) -> str:
         return represent_grammar_as_string(self)
     
-    def random_sentence(self, **kwargs: Unpack[parse_trees.GenKwargs]) -> tuple[str, ...]:
+    def random_sentence(self, **kwargs: Unpack[parse_trees.GenKwargs]) -> sentencetype:
         """Produces a random sentence"""
         res = parse_trees.produce_random_sentence(
             from_symbol=self.start_symbol,
@@ -95,17 +100,19 @@ class Grammar:
     def random_string(self, **kwargs: Unpack[parse_trees.GenKwargs]) -> str:
         return "".join(self.random_sentence(**kwargs))
 
-    def brute_force_sentences(self, max_tokens: int) -> set[tuple[str, ...]]:
-        res = parse_trees.brute_force_sentences(
+    def brute_force_sentences(self, max_tokens: int) -> set[sentencetype]:
+        brute = parse_trees.brute_force_sentences(
             from_symbol=self.start_symbol,
             productions=self.productions,
             max_tokens=max_tokens
         )
 
+        res = set(brute)
+
         return res
 
 
-def get_useless_symbols(G: Grammar) -> list[Nonterminal]:
+def get_useless_symbols(G: CFG) -> list[Nonterminal]:
     nonterms = set(G.nonterminals)
     
     # Determine reachable non-terminals
@@ -137,7 +144,7 @@ def get_useless_symbols(G: Grammar) -> list[Nonterminal]:
     return sorted(useless)
 
 
-def check_grammar_is_valid(G: Grammar) -> None:
+def check_grammar_is_valid(G: CFG) -> None:
     """Checks that a grammar is valid, raising InvalidGrammarError if not."""
 
     # Check that terminals are strings
@@ -155,7 +162,7 @@ def check_grammar_is_valid(G: Grammar) -> None:
     #
 
 
-def represent_grammar_as_string(grammar: Grammar) -> str:
+def represent_grammar_as_string(grammar: CFG) -> str:
     """Represents a grammar as a string, with production rules represented as e.g.
     S → ('a', A, 'a').
     Productions of the start symbol as displayed at the top."""

@@ -1,18 +1,15 @@
 from collections import defaultdict
-from copy import deepcopy
-from dataclasses import dataclass, field
-from typing import Iterator
 
 import numpy as np
 from numpy.typing import NDArray
 
-from dsa.algorithms.formal_languages.types import (
+from dsa.formal_languages.types import (
     Nonterminal,
     sentencetype
 )
-from dsa.algorithms.formal_languages.context_free import Grammar
-from dsa.algorithms.formal_languages.cnf_tools import chomsky_normal_form
-from dsa.algorithms.formal_languages.parse_trees import ParseNode, ParseForestNode
+from dsa.formal_languages.context_free import CFG
+from dsa.formal_languages.cnf_tools import chomsky_normal_form
+from dsa.formal_languages.parse_trees import ParseForestNode
 
 
 class CYKParser:
@@ -22,7 +19,7 @@ class CYKParser:
     The main exception is the example there uses 1-indexing and does not seem to account for empty strings.
     The implementation here uses 0-indexing, and treats empty string similarly to any other sentence."""
 
-    def __init__(self, G: Grammar, assume_cnf=False) -> None:
+    def __init__(self, G: CFG, assume_cnf=False) -> None:
         """Create a CYK Parser, using the input grammar.
         assume_cnf: If True, assumed the grammar is already on Chomsky Normal Form, and proceeds without
             converting it. If False, the grammar is converted into CNF."""
