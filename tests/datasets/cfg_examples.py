@@ -3,11 +3,8 @@ including a boolean indicating whether the sentences are members of the grammar"
 
 from dataclasses import dataclass
 
-from dsa.algorithms.formal_languages.context_free import (
-    Grammar,
-    productiontype
-)
-from dsa.algorithms.formal_languages.types import Nonterminal
+from dsa.formal_languages.context_free import CFG
+from dsa.formal_languages.types import Nonterminal, productiontype, sentencetype
 
 
 @dataclass
@@ -18,11 +15,11 @@ class Example:
     name: str
     productions: productiontype
     start_symbol: Nonterminal
-    sentences: list[tuple[tuple[str, ...], bool]]
+    sentences: list[tuple[sentencetype, bool]]
 
     @property
-    def grammar(self) -> Grammar:
-        G = Grammar(production_rules=self.productions, start_symbol=self.start_symbol)
+    def grammar(self) -> CFG:
+        G = CFG(production_rules=self.productions, start_symbol=self.start_symbol)
         return G
     #
 

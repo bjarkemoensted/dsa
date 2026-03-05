@@ -1,24 +1,20 @@
-"""Tooling for converting a grammar to Chomsky Normal Form (CNF) and testing CNF.
-This mainly uses the framework of Lange & Leiß (2009), also used on the Wikipedia page on Chomsky Normal Forms.
-"""
-
 from collections import defaultdict
 from copy import deepcopy
 from itertools import combinations
 from typing import Callable, Iterable, Iterator
 
-from dsa.algorithms.formal_languages.context_free import (
+from dsa.formal_languages.context_free import (
     get_useless_symbols,
-    Grammar
+    CFG
 )
-from dsa.algorithms.formal_languages.types import (
+from dsa.formal_languages.types import (
     Nonterminal,
     productiontype,
     sententialtype
 )
 
 
-def grammar_is_cnf(G: Grammar, allow_empty_string_from_start=True) -> bool:
+def grammar_is_cnf(G: CFG, allow_empty_string_from_start=True) -> bool:
     """Determines whether a grammar is CNF.
     Following Hopcroft & Ullman, CNF is defined as:
     1) No 'useless symbols' (nonterminals that are unreachable or have no productions)
@@ -178,6 +174,14 @@ def _inline_nullable_powerset(rule: list[sententialtype], nullable: set[Nontermi
 
 
 class CNFConverter:
+    """Handles converting a grammar into Chomsky Normal Form.
+    Conversion is implemented using the approach of Lange & Leiß (2009),
+    also used on the Wikipedia page on Chomsky Normal Forms.
+    Each step in the conversion is named accordingly (START, TERM, BIN, DEL, UNIT).
+    As each step may modify the production rules and/or the start symbol in-place, I opted
+    to make a class for holding the intermediate results and executing each step, to
+    simplify the process of testing each step"""
+    
     def __init__(self, start_symbol: Nonterminal, productions: productiontype) -> None:
         self.steps: tuple[Callable[[], None], ...] = (
             self._start,
@@ -392,11 +396,11 @@ class CNFConverter:
     #
 
 
-def chomsky_normal_form(G: Grammar) -> Grammar:
+def chomsky_normal_form(G: CFG) -> CFG:
     """Converts a grammar into an equivalent CNF grammar."""
 
     converter = CNFConverter(start_symbol=G.start_symbol, productions=G.productions)
     converter.convert()
-    res = Grammar(start_symbol=converter.start_symbol, production_rules=converter.production_rules)
+    res = CFG(start_symbol=converter.start_symbol, production_rules=converter.production_rules)
 
     return res

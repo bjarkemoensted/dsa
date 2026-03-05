@@ -11,6 +11,7 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Linked List](#linked-list)
 - [Algorithms](#algorithms)
   - [Formal languages](#formal-languages)
+    - [Context-free grammars](#context-free-grammars)
 
 # Data structures
 A few elementary data structures have been implemented so far.
@@ -162,4 +163,62 @@ assert first == 0
 ## Formal languages
 On the topic of formal languages, I will typically use Hopcroft, Motwani, and Ullman (HMU) as a reference:
 John E. Hopcroft, Rajeev Motwani, Jeffrey D. Ullman - Introduction to automata theory, languages, and computation, 3rd edition (2006)
+
+Some resources use terminology slightly different, so here's a brief overview of the terms used here, and some implementation details:
+
+
+| Term | Description | Data type | Example |
+|-----|-----|-----|-----|
+| Nonterminal | A grammar symbol that can be expanded using production rules. Represented by upper-case letters | `Nonterminal` class | `S` |
+| Terminal | A symbol that appears in the final output and cannot be expanded further. | `str` | `a` |
+| Symbol | Either a terminal or a nonterminal. | `str\|Nonterminal` | `a` or `S` |
+| Sentence | A sequence of terminals produced by the grammar. | `tuple[str, ...]` | `abc` |
+| Empty string | Special case of a 'non-string', for e.g. a nonterminal producing nothing | empty tuple `()` | `ε` |
+| Sentential form | A sequence of terminals/nonterminals. | `tuple[str\|Nonterminal]` | `aSb` |
+| Production rules | Rules for how Nonterminals may be expanded. | `dict[Nonterminal, list[tuple[str\|Nonterminal, ...]]]` | `S → aS \| S \| ε` |
+| Head / LHS | The nonterminal being expanded in a production. | `Nonterminal` | `S` in `S → aS \| S \| ε` |
+| RHS/body/production | One individual sententials produced by a nonterminal | `tuple[str \| Nonterminal, ...]` | `aS` in `S → aS \| S \| ε` |
+
+### Context-free grammars
+Context free grammars are implemented in the `CFG` class, and can be instantiated with a set of prodution rules, and a starting symbol. Grammars expose helpers methods for producing a random sentence/string, and for using breadth-first generation to brute force every possible sentence up to a given length:
+
+```python
+from dsa.formal_languages import (
+    CFG,
+    Nonterminal,
+    productiontype  # alias for dict[Nonterminal, list[sententialtype]]
+)
+
+
+S = Nonterminal("S")
+
+production_rules: productiontype = {
+    S: [("a",), ("a", S), ("a", "b"), ()]
+}
+
+G = CFG(production_rules, S)
+
+print(G.ascii)  # S → ('a',) | ('a', S) | ('a', 'b') | ε
+
+s = G.random_string()
+print(s)  # a
+
+sentence = G.random_sentence()
+print(sentence)  # ('a', 'b')
+
+brute = G.brute_force_sentences(max_tokens=2)
+print(brute)  # {('a', 'b'), (), ('a', 'a'), ('a',)}
+```
+
+<!--pytest-codeblocks:cont-->
+```python
+from dsa.formal_languages import chomsky_normal_form, grammar_is_cnf
+
+assert not grammar_is_cnf(G)
+
+G_cnf = chomsky_normal_form(G)
+assert grammar_is_cnf(G_cnf)
+
+```
+
 

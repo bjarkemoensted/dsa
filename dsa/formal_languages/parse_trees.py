@@ -5,7 +5,7 @@ from typing import Iterable, Iterator, TypedDict, Unpack
 
 import anytree  # type: ignore
 
-from dsa.algorithms.formal_languages.types import (
+from dsa.formal_languages.types import (
     DerivationError,
     is_sentence,
     Nonterminal,

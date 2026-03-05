@@ -3,14 +3,15 @@ import random
 import typing
 import unittest
 
-from dsa.algorithms.formal_languages import cnf_tools
-from dsa.algorithms.formal_languages import context_free
-from dsa.algorithms.formal_languages.cyk import CYKParser
-from dsa.algorithms.formal_languages.types import (
+from dsa.formal_languages import cnf_tools
+from dsa.formal_languages import context_free
+from dsa.formal_languages.cyk import CYKParser
+from dsa.formal_languages.types import (
     DerivationError,
     Nonterminal,
+    productiontype
 )
-from dsa.algorithms.formal_languages.parse_trees import brute_force_sentences
+from dsa.formal_languages.parse_trees import brute_force_sentences
 
 from ..datasets import cfg_examples
 
@@ -32,7 +33,7 @@ class TestCFG(unittest.TestCase):
 
     def test_init(self) -> None:
         for grammar in self.grammars:
-            self.assertIsInstance(grammar, context_free.Grammar)
+            self.assertIsInstance(grammar, context_free.CFG)
         #
     
     def test_productions(self) -> None:
@@ -84,6 +85,42 @@ class TestCFG(unittest.TestCase):
     #
 
 
+class TestUselessSymbolDetection(unittest.TestCase):
+    def test_start_symbol(self):
+        """Check that the start symbol isn't mistakenly labelled as 'useless' because it's unreachable
+        from other nonterms - in a CNF grammar, the start should, by construction, not be reachable from
+        any nonterm, so it's crucial to allow the start symbol to act as a source node."""
+        
+        for ex in cfg_examples.all_examples:
+            for G in (ex.grammar, cnf_tools.chomsky_normal_form(ex.grammar)):
+                useless = context_free.get_useless_symbols(G)
+                msg = f"Example {ex.name} labelled start symbol {G.start_symbol} as useless"
+                self.assertNotIn(G.start_symbol, useless, msg)
+
+
+    def test_nonterm_cycle(self) -> None:
+        """Check that a grammar which contains an unreachable 'cycle' (A -> B, B -> A), in which one
+        of the nonterms could produce a string, is still caught as being 'useless', because the cycle
+        cannot be reached"""
+        
+        S = Nonterminal("S")
+        A = Nonterminal("A")
+        B = Nonterminal("B")
+        C = Nonterminal("C")
+
+        g: productiontype = {
+            S: [(), ("a",), ("b", A)],
+            A: [("x",), ()],
+            B: [(C,)],
+            C: [(B, "x")]
+        }
+
+        G = context_free.CFG(g, S)
+        useless = set(context_free.get_useless_symbols(G))
+        truly_useless = {B, C}
+        self.assertSetEqual(useless, truly_useless)
+    #
+
 
 class TestCNF(unittest.TestCase):
     def setUp(self) -> None:
@@ -98,7 +135,7 @@ class TestCNF(unittest.TestCase):
             ex.grammar for ex in self.examples
         ]
 
-    def _partially_converted(self, last_step: str) -> typing.Iterator[context_free.Grammar]:
+    def _partially_converted(self, last_step: str) -> typing.Iterator[context_free.CFG]:
         """Do some of the steps in converting the test grammars into CNF, stopping at the step
         with the specified name.
         This is to simplify testing that individual steps work."""
@@ -123,7 +160,7 @@ class TestCNF(unittest.TestCase):
             if not encountered:
                 raise RuntimeError(f"Didn't encounter conversion step: {last_step}")
             
-            G_converted = context_free.Grammar(
+            G_converted = context_free.CFG(
                 start_symbol=converter.start_symbol,
                 production_rules=converter.production_rules
             )
@@ -213,7 +250,12 @@ class TestCNF(unittest.TestCase):
             sentences_cnf = set(G_cnf.brute_force_sentences(n_tokens))
             self.assertSetEqual(sentences, sentences_cnf)
         #
-    #
+    
+    def test_cnf_after_conversion(self):
+        for ex in self.examples:
+            G = ex.grammar
+            G_cnf = cnf_tools.chomsky_normal_form(G)
+            self.assertTrue(cnf_tools.grammar_is_cnf(G_cnf), f"Example {ex.name} not CNF")
 
 
 class TestCFGMembership(unittest.TestCase):
