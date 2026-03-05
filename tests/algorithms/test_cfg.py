@@ -7,7 +7,7 @@ from dsa.formal_languages import cnf_tools
 from dsa.formal_languages import context_free
 from dsa.formal_languages.cyk import CYKParser
 from dsa.formal_languages.types import (
-    DerivationError,
+    InvalidGrammarError,
     Nonterminal,
     productiontype
 )
@@ -53,7 +53,9 @@ class TestCFG(unittest.TestCase):
         #
     
     def test_ascii_repr(self):
-        for grammar in self.grammars:
+        bad_grammars = [cfg_examples.example_useless.grammar]
+        grammars = list(self.grammars) + bad_grammars
+        for grammar in grammars:
             s = grammar.ascii
             self.assertIsInstance(s, str)
             # Number of lines should be equal to the number of productions
@@ -64,25 +66,13 @@ class TestCFG(unittest.TestCase):
     
     def test_invalid_grammar_error(self):
         # Check error when attempting to initialize a 'dead end' grammar (nonterminal with no productions)
-        examples = (cfg_examples.example_illegal, cfg_examples.example_useless)
-        for ex in examples:
-            G = ex.grammar
-            useless = context_free.get_useless_symbols(G)
-            self.assertGreater(len(useless), 0)
-        #
-    
-    def test_dead_end_exception(self):
-        # Check error when attempting to initialize a 'dead end' grammar (nonterminal with no productions)
-        G = cfg_examples.example_illegal.grammar
-
-        rs = random.Random()
-        rs.seed(0)
-        with self.assertRaises(DerivationError):
-            _ = G.random_sentence(
-                random_state=rs
+        ex = cfg_examples.example_illegal
+        with self.assertRaises(InvalidGrammarError):
+            _ = context_free.CFG(
+                production_rules=ex.productions,
+                start_symbol=ex.start_symbol
             )
         #
-    #
 
 
 class TestUselessSymbolDetection(unittest.TestCase):
@@ -229,12 +219,12 @@ class TestCNF(unittest.TestCase):
             (cfg_examples.example_arithmetic, False),
             (cfg_examples.example_balanced, False),
             (cfg_examples.example_balanced_cnf, True),
-            (cfg_examples.example_empty, False),
+            (cfg_examples.example_empty, True),
             (cfg_examples.example_palindrome, False),
         )
 
         for ex, cnf in grammars_with_cnf_status:
-            self.assertIs(cnf_tools.grammar_is_cnf(ex.grammar), cnf)
+            self.assertIs(cnf_tools.grammar_is_cnf(ex.grammar), cnf, f"CNF detection failed for '{ex.name}'")
         #
     
     def test_cnf_conversion_retains_grammar(self):

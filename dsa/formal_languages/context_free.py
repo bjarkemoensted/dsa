@@ -2,6 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Iterable, Iterator, Unpack
 
+
 from dsa.formal_languages.types import (
     InvalidGrammarError,
     Nonterminal,
@@ -113,34 +114,50 @@ class CFG:
 
 
 def get_useless_symbols(G: CFG) -> list[Nonterminal]:
-    nonterms = set(G.nonterminals)
-    
-    # Determine reachable non-terminals
-    prods = _iterate_symbols(G.productions, include_keys=False)
-    reachable = {symbol for symbol in prods if isinstance(symbol, Nonterminal)}
+    """Detects 'useless' symbols in the grammar, meaning nonterminals which
+    do not appear in any derivation from the start symbol.
+    Identifies which nonterminals are 1) reachable and 2) can produce any
+    string (including the empty string)."""
 
-    # Determine generating non-terminals (nonterms that can produce a string)
-    generating: set[Nonterminal] = set()
-    for nt in G.productions.keys():
-        # Breadth-first search from each LHS in the production rules
-        visited = {nt}
-        front = [G.productions[nt]]
-        while front:
-            # Check every symbol in the productions of this nonterm
-            outputs = {symbol for elem in front for prod in elem for symbol in prod}
-            if any(isinstance(symbol, str) for symbol in outputs):
-                generating.add(nt)  # if one is a string, the nonterm has at least one string production
-                break
-            else:
-                # Otherwise, keep looking through unvisited nonterms
-                visit_next = {symbol for symbol in outputs if isinstance(symbol, Nonterminal) and symbol not in visited}
-                front = [G.productions[nt] for nt in visit_next]
-                visited |= visit_next
+    reachable: set[Nonterminal] = set()
+    front: set[Nonterminal] = {G.start_symbol}
+
+    # Determine nonterms reachable from the start symbol
+    while front:
+        reachable |= front
+        heads = list(front)
+        front = set()
+        for head in heads:
+            for prod in G.productions.get(head, []):
+                for symbol in prod:
+                    if isinstance(symbol, Nonterminal):
+                        front.add(symbol)
+                    #
+                #
             #
-        #
+        front -= reachable
 
-    useful = reachable & generating
-    useless = nonterms - useful
+    # Determine which of the nonterms can produce strings
+    producing: set[Nonterminal] = set()
+    # Keep updating until we don't detect more string-producers
+    updated = True
+    while updated:
+        n_determined = len(producing)
+        updated = False
+        for head, productions in G.productions.items():
+            for rhs in productions:
+                # Nonterm can produce string if it can produce a string, or a string-producing nonterm
+                stringmaker = any(isinstance(symbol, str) or symbol in producing for symbol in rhs) or not rhs
+                if stringmaker:
+                    producing.add(head)
+                    producing |= {symbol for symbol in rhs if isinstance(symbol, Nonterminal)}
+                #
+            #
+        updated = len(producing) != n_determined
+
+    useful = reachable & producing
+    useless = set(G.nonterminals) - useful
+
     return sorted(useless)
 
 
@@ -159,7 +176,24 @@ def check_grammar_is_valid(G: CFG) -> None:
         raise InvalidGrammarError("Nonterminals must be distinct")
     if len(G.terminals) != len(set(G.terminals)):
         raise InvalidGrammarError("Terminals must be distinct")
-    #
+    
+    # Check that the nonterminals attribute matches production rules
+    nonterms_prod = set(G.productions.keys())
+    terms_prod: set[str] = set()
+    for prod in G.productions.values():
+        for p in prod:
+            nonterms_prod |= {symbol for symbol in p if isinstance(symbol, Nonterminal)}
+            terms_prod |= {symbol for symbol in p if isinstance(symbol, str)}
+        #
+    if nonterms_prod != set(G.nonterminals):
+        raise InvalidGrammarError("Nonterminals do not match production rules")
+    if terms_prod != set(G.terminals):
+        raise InvalidGrammarError("Terminals do not match production rules")
+
+    # Check that every nonterminal has a production
+    _missing = sorted(set(G.nonterminals) - set(G.productions.keys()))
+    if _missing:
+        raise InvalidGrammarError(f"Some nonterminals have no productions: {', '.join(map(str, _missing))}")
 
 
 def represent_grammar_as_string(grammar: CFG) -> str:
@@ -168,7 +202,7 @@ def represent_grammar_as_string(grammar: CFG) -> str:
     Productions of the start symbol as displayed at the top."""
     
     # Order nonterminals alphabetically, except starting with the start symbol
-    nt_order = sorted(grammar.nonterminals, key = lambda nt: (nt != grammar.start_symbol, nt))
+    nt_order = sorted(grammar.productions.keys(), key = lambda nt: (nt != grammar.start_symbol, nt))
     lines: list[str] = []
 
     for nt in nt_order:
