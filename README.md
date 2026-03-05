@@ -10,8 +10,8 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Priority Queue](#priority-queue)
   - [Linked List](#linked-list)
 - [Algorithms](#algorithms)
-  - [Formal languages](#formal-languages)
-    - [Context-free grammars](#context-free-grammars)
+  - [Context-free grammars](#context-free-grammars)
+    - [CYK algorithm and parse trees](#cyk-algorithm-and-parse-trees)
 
 # Data structures
 A few elementary data structures have been implemented so far.
@@ -160,9 +160,12 @@ assert first == 0
 
 # Algorithms
 
-## Formal languages
+## Context-free grammars
 On the topic of formal languages, I will typically use Hopcroft, Motwani, and Ullman (HMU) as a reference:
-John E. Hopcroft, Rajeev Motwani, Jeffrey D. Ullman - Introduction to automata theory, languages, and computation, 3rd edition (2006)
+> John E. Hopcroft, Rajeev Motwani, Jeffrey D. Ullman - Introduction to automata theory, languages, and computation, 3rd edition (2006).
+
+I'll also refer to Michael Sipser (Sipser):
+> Sipser M. *Introduction to the Theory of Computation*, 3rd edition (2012)
 
 Some resources use terminology slightly different, so here's a brief overview of the terms used here, and some implementation details:
 
@@ -179,7 +182,6 @@ Some resources use terminology slightly different, so here's a brief overview of
 | Head / LHS | The nonterminal being expanded in a production. | `Nonterminal` | `S` in `S → aS \| S \| ε` |
 | RHS/body/production | One individual sententials produced by a nonterminal | `tuple[str \| Nonterminal, ...]` | `aS` in `S → aS \| S \| ε` |
 
-### Context-free grammars
 Context free grammars are implemented in the `CFG` class, and can be instantiated with a set of prodution rules, and a starting symbol. Grammars expose helpers methods for producing a random sentence/string, and for using breadth-first generation to brute force every possible sentence up to a given length:
 
 ```python
@@ -210,6 +212,12 @@ brute = G.brute_force_sentences(max_tokens=2)
 print(brute)  # {('a', 'b'), (), ('a', 'a'), ('a',)}
 ```
 
+There are subtly different definitions of CNF in the litterature, with differences in e.g. whether to consider empty strings as allowed.
+I follow Sipser in including empty string productions from the start symbol, and also HMU in requiring the absence of 'useless symbols' (nonterminals which do not occur in any derivation).
+
+Functionality for converting a grammar to Chomsky Normal Form (CNF) is also available.
+
+
 <!--pytest-codeblocks:cont-->
 ```python
 from dsa.formal_languages import chomsky_normal_form, grammar_is_cnf
@@ -221,4 +229,38 @@ assert grammar_is_cnf(G_cnf)
 
 ```
 
+### CYK algorithm and parse trees
 
+TODO: Short description of parse trees, parse forests, and the CYK parser
+
+```python
+from dsa.formal_languages import (
+    CFG,
+    CYKParser,
+    Nonterminal,
+    productiontype
+)
+
+
+# Create an ambiguous grammar
+S = Nonterminal("S")
+g: productiontype = {
+    S: [
+        (S, S),
+        ("a",),
+    ]
+}
+
+# Make a parser for the grammar
+G = CFG(g, S)
+parser = CYKParser(G)
+
+# Verify a sentence as producible by the grammar
+sentence = ('a', 'a', 'a')
+assert parser.is_producible(sentence)
+
+# Iterate over all possible parse trees
+forest = parser.make_parse_forest(sentence)
+for tree in forest:
+    print(tree.ascii_tree())
+```
