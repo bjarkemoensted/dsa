@@ -12,7 +12,7 @@ from dsa.algorithms.formal_languages.types import (
 )
 from dsa.algorithms.formal_languages.context_free import Grammar
 from dsa.algorithms.formal_languages.cnf_tools import chomsky_normal_form
-from dsa.algorithms.formal_languages.parse_trees import ParseNode
+from dsa.algorithms.formal_languages.parse_trees import ParseNode, ParseForestNode
 
 
 class CYKParser:
@@ -133,121 +133,72 @@ class CYKParser:
         return res
     #
 
-    def _build_parse_forest(
-            self,
-            parse_forest: ParseForest,
-            back: NDArray[np.object_],
-            length: int,
-            start: int,
-            A: int
-        ) -> ParseForestNode:
-        
-        node  = ParseForestNode(
-            A=A,
-            start=start,
-            length=length,
-            forest=parse_forest
-        )
+    def make_parse_forest(self, sentence: sentencetype) -> ParseForestNode:
+        """Encode every parse tree for the sentence in a parse forest."""
 
-        if length == 1:
-            return node
+        _, back = self._parse(sentence=sentence)
 
-        for split, B, C in back[length, start, A]:
-            left = self._build_parse_forest(
-                parse_forest=parse_forest,
-                back=back,
-                start=start,
-                length=split,
-                A=B
-            )
-            right = self._build_parse_forest(
-                parse_forest=parse_forest,
-                back=back,
-                start=start + split,
-                length=length - split,
-                A=C
-            )
-
-            node.alternatives.append((left, right))
-        
-        return node
-
-    def make_parse_forest(self, sentence: sentencetype) -> ParseForest:
-        P, back = self._parse(sentence=sentence)
-        # Check that the sentence is producible before sontinuing
-        producible = self._determine_producible_from_parse_table(P=P)
-        if not producible:
-            raise RuntimeError(f"Sentence is not producible by grammar - can't construct parse forest")
-
-        res = ParseForest(
+        res = build_parse_forest(
             nonterminals=self.G.nonterminals,
-            sentence=sentence
-        )
-
-        start_node = self._build_parse_forest(
-            parse_forest=res,
+            sentence=sentence,
             back=back,
-            length=len(sentence),
-            start=0,
             A=self.start_symbol_index
         )
 
-        res.start_node = start_node
-        
         return res
+
+
+def build_parse_forest(
+        nonterminals: tuple[Nonterminal, ...],
+        sentence: sentencetype,
+        back: NDArray[np.object_],
+        A: int,
+        length: int=-1,
+        start: int=0,
+    ) -> ParseForestNode:
+    """Build a compact parse forest to represent all parse trees for a sentence/grammar combination.
+    nonterminals: tuple of the nonterminals in the (CNF) grammar
+    sentence: The sentence parsed
+    back: Backpointing triples encoding how each head in the production rules can produce which substrings
+    length: Length of the current substring (initially the sentence length)
+    start: The starting index of the current substring (initially 0)
+    A: The current production head (initially the start symbol)"""
     
+    if length == -1:
+        length = len(sentence)
 
-@dataclass
-class ParseForestNode:
-    # TODO DOCSTRING
-    A: int
-    start: int
-    length: int
-    forest: ParseForest
-    alternatives: list[tuple[ParseForestNode, ParseForestNode]] = field(default_factory=list)
+    # Make a PFN for the productions from A
+    node = ParseForestNode(
+        A=A,
+        start=start,
+        length=length,
+        nonterminals=nonterminals,
+        sentence=sentence
+    )
 
-    @property
-    def is_leaf(self) -> bool:
-        return self.length <= 1
+    # Return if we're down to a single symbol
+    if length == 1:
+        return node
 
-    def generate_parse_trees(self, parent: ParseNode|None=None) -> Iterator[ParseNode]:
-        
-        nonterm = self.forest.nonterminals[self.A]
-        
-        if self.is_leaf:
-            node = ParseNode(symbol=nonterm, parent=parent)
-            if self.length == 1:
-                ParseNode(symbol=self.forest.sentence[self.start], parent=node)
-            yield node
-            return
-        else:
-            for left, right in self.alternatives:
-                for lefttree in left.generate_parse_trees(parent=None):
-                    for righttree in right.generate_parse_trees(parent=None):
-                        node = ParseNode(nonterm, children=(lefttree, righttree))
-                        yield node
-                    #
-                #
-            #
-        #
-    #
+    # Otherwise, recurse on partitionings into left and right substrings
+    for split, B, C in back[length, start, A]:
+        left = build_parse_forest(
+            back=back,
+            start=start,
+            length=split,
+            A=B,
+            nonterminals=nonterminals,
+            sentence=sentence
+        )
+        right = build_parse_forest(
+            back=back,
+            start=start + split,
+            length=length - split,
+            A=C,
+            nonterminals=nonterminals,
+            sentence=sentence
+        )
 
-
-@dataclass
-class ParseForest:
-    # TODO DOCSTRING
-    nonterminals: tuple[Nonterminal, ...]
-    sentence: sentencetype
-    start_node: ParseForestNode|None=None
-
-    def generate_parse_trees(self) -> Iterator[ParseNode]:
-        if not self.start_node:
-            return
-        for tree in self.start_node.generate_parse_trees():
-            yield deepcopy(tree)
-        #
-    #
-
-    def __iter__(self):
-        return self.generate_parse_trees()
-    #
+        node.alternatives.append((left, right))
+    
+    return node

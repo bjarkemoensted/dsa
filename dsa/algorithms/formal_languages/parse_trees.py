@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import dataclass, field
 import random
 from typing import Iterable, Iterator, TypedDict, Unpack
 
@@ -37,7 +38,7 @@ class ParseNode(anytree.AnyNode):
         self.symbol = symbol
         self.parent = parent
         if children:
-            self.children = children
+            self.children = tuple(children)
         #
 
     def ascii_tree(self) -> str:
@@ -45,10 +46,13 @@ class ParseNode(anytree.AnyNode):
         s = str(anytree.RenderTree(self))
         return s
 
-    def sentence(self) -> str:
+    def string(self) -> str:
         """Returns the sentence (yield) from this node as a string"""
         s = "".join(self.iter_sentence())
         return s
+
+    def sentence(self) -> sentencetype:
+        return tuple(self.iter_sentence())
 
     def iter_sentence(self) -> Iterator[str]:
         """Iterates over the sentence produced from this node."""
@@ -65,6 +69,18 @@ class ParseNode(anytree.AnyNode):
         else:
             raise TypeError
         #
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, ParseNode):
+            return NotImplemented
+        
+        # Require the other node to hold the same symbol, and have same number of children
+        nodes_differ = self.symbol != other.symbol or len(self.children) != len(other.children)
+        if nodes_differ:
+            return False
+        
+        # Recurse equality check on child nodes
+        return all(child == otherchild for child, otherchild in zip(self.children, other.children))
 
     def __repr__(self):
         return repr(self.symbol)
@@ -136,7 +152,7 @@ def produce_random_sentence(
         productions: productiontype,
         depth: int=0,
         **kwargs: Unpack[GenKwargs]
-    ) -> tuple[str, ...]:
+    ) -> sentencetype:
     """Produce a random sentence using the specified grammar.
     See grow_random_parse_tree docstring for details."""
 
@@ -223,5 +239,90 @@ def brute_force_sentences(
                 continue
             processed.add(new_sentential)
             queue.append(new_sentential)
+        #
+    #
+
+
+@dataclass
+class ParseForestNode:
+    """Represents a parse forest, which stores a compact representation of
+    every possible parse tree for a given sentence, given a CNF grammar.
+    Each node in the forest contains information on a nonterminal, and a part of the
+    sentence which can be produced by a binary rule A -> BC.
+        
+    The node stores a list of tuples of childnodes, indicating which nonterminals B and C
+    may produce a left and a right part of the sentence.
+    As such, the parse forest encodes the same structure as the CYK parser discovers.
+    
+    Since all productions in a CNF grammar are one of
+        A -> BC
+        A -> a
+        S -> ε
+    We can check if a node is a leaf by checking whether it encodes a substring shorter
+    than 2 characters.
+    
+    The node stores
+    A: Pointer to the nonterminal producing part of the sentence
+    start: The starting index for the part of the sentence
+    length: The length of the part of the sentence
+    nonterminals: A reference to the grammar's nonterminal (so we can just store an index at each node)
+    sentence: The full sentence being parsed
+    alternatives: List of tuples (left, right) of parse nodes representing substrings
+        into which we can partition the remaining sentence.
+    
+    The parse forest mainly serves to facilitate iteration over possible parse trees.
+    It implements iteration directly, i.e.
+    for tree in parse_forest_instance:
+        ...
+
+    In cases where the sentence cannot be produced by the grammar, the parse forest
+    is empty, and iterating will give nothing."""
+
+    A: int
+    start: int
+    length: int
+    nonterminals: tuple[Nonterminal, ...]
+    sentence: sentencetype
+    alternatives: list[tuple[ParseForestNode, ParseForestNode]] = field(default_factory=list)
+
+    @property
+    def is_leaf(self) -> bool:
+        """Leaf node check."""
+        return self.length <= 1
+
+    def generate_parse_trees(self, parent: ParseNode|None=None) -> Iterator[ParseNode]:
+        """Iterates over all possible parse trees from the current node.
+        This follows a recursive approach similar to constructing a tree, with one exception:
+        Because ParseForestNodes only encode nonterminal rules like A -> BC, string productions like
+        A -> a are handled separately, i.e. rather than storing string productions as leaf nodes,
+        and checking immediately after recursing whether a leaf has been reached, we instead
+        have to check before recursing whether all there's left to do is produce a (possibly empty) string,
+        and, in that case, attach a string child node to the parse tree"""
+        
+        nonterm = self.nonterminals[self.A]
+        
+        if self.is_leaf:
+            # We've reached a production like A -> 'a'. Make a node for <parent> -> A
+            node = ParseNode(symbol=nonterm, parent=parent)
+            if self.length == 1:
+                # If the production is not the empty string, add a child node for a
+                ParseNode(symbol=self.sentence[self.start], parent=node)
+            yield node
+            return
+        else:
+            # Recurse on the subtrees for B and C
+            for left, right in self.alternatives:
+                for lefttree in left.generate_parse_trees(parent=None):
+                    for righttree in right.generate_parse_trees(parent=None):
+                        node = ParseNode(nonterm, children=(lefttree, righttree))
+                        yield node
+                    #
+                #
+            #
+        #
+    
+    def __iter__(self) -> Iterator[ParseNode]:
+        for tree in self.generate_parse_trees():
+            yield tree
         #
     #

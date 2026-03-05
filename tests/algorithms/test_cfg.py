@@ -260,7 +260,7 @@ class TestParseForests(unittest.TestCase):
                 forest = parser.make_parse_forest(sentence=sentence)
                 n_distinct_trees = 0
                 for tree in forest:
-                    sentence_reconstructed = tuple(tree.iter_sentence())
+                    sentence_reconstructed = tuple(tree.sentence())
                     self.assertEqual(sentence_reconstructed, sentence)
                     n_distinct_trees += 1
                 
@@ -270,7 +270,38 @@ class TestParseForests(unittest.TestCase):
                     f"Expected {multiplicity}."
                 )
                 self.assertEqual(n_distinct_trees, multiplicity, msg=msg)
+            #
+        #
+    
+    def test_parse_forest_on_non_producible_sentence(self):
+        for ex in self.examples:
+            G = ex.grammar
+            parser = CYKParser(G)
+            sentence = tuple("xyzæøå")
+            forest = parser.make_parse_forest(sentence)
+            n = 0
+            for _ in forest:
+                n += 1
+            self.assertEqual(n, 0)
+        #
+    
+    def test_parse_forest_trees_are_distinct(self):
+        for ex in self.examples:
+            G = ex.grammar
+            parser = CYKParser(G)
+            for sentence, in_grammar in ex.sentences:
+                if not in_grammar:
+                    continue
 
+                trees = list(parser.make_parse_forest(sentence))
+                for i in range(len(trees)):
+                    for j in range(i+1, len(trees)):
+                        self.assertNotEqual(trees[i], trees[j])
+                    #
+                #
+            #
+        #
+    #
 
 
 if __name__ == "__main__":

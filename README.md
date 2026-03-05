@@ -9,12 +9,14 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Heap](#heap)
   - [Priority Queue](#priority-queue)
   - [Linked List](#linked-list)
+- [Algorithms](#algorithms)
+  - [Formal languages](#formal-languages)
 
-## Data structures
+# Data structures
 A few elementary data structures have been implemented so far.
 Some classes share functionality such as inserting and removing elements - these derive from a base class which has abstract methods with agnostic terminology `_put`, `_get`, and `_size`. These are private because public versions (`put`, `get`, `size`) implement class-agnostic checks, such as throwing errors if attempting to get an element from an empty container. Any future thread-safe behaviors can also be implemented here. Child classes define aliases for the aforementioned methods to conform with conventions, such as stacks using `push` and `pop` for `put` and `get`, respectively.
 
-### Stack
+## Stack
 Implementing stacks in python is a bit artifical since python lists have all the functionality of a stack. To mimic the dynamic memory allocation needed for implementing a stack from an array, values are stored in a list with some fixed initial size, which is then extended when more space is needed (unless `maxsize` is provided and exceeded).
 The implementation closely follows CLRS, except it uses zero indexing.
 
@@ -28,7 +30,7 @@ val = stack.pop()
 assert val == 42
 ```
 
-### Queue
+## Queue
 Like stacks, the queue implementation closely follows CLRS, except using zero-indexing. Like CLRS, the queue leaves one element as None to make it simpler to check for emptiness and fullness.  
 
 **Example**:
@@ -41,10 +43,10 @@ q.enqueue("bar")
 assert q.dequeue() == "foo"
 ```
 
-### Heap
+## Heap
 Heap operation are implemented in two different ways, as functions operating on a list, and as a class.
 
-#### Heap functions <!-- omit in toc -->
+### Heap functions <!-- omit in toc -->
 The first closely follows CLRS, but uses a somewhat different naming convention. CLRS uses '(max)-heapify' for the operation which restores the heap property by moving elements in violation of the heap property down through the heap (by recursively swapping with the larger child node), until the property is restored.
 
 Slightly confusing (at least to me), the algorithm for restoring the heap property in the 'opposite' direction (swapping violating nodes with their parents up through the heap) isn't given until the section on priority queues, as is named 'heap-increase-key'.
@@ -81,7 +83,7 @@ smallest_even = heappop(numbers, key=order)
 assert smallest_even == 2
 ```
 
-#### Heap class <!-- omit in toc -->
+### Heap class <!-- omit in toc -->
 Constantly passing around key functions and parameters denoting whether a heap is a min/max heap becomes cumbersome and error prone.
 The `Heap` class can be used to define these at instantiation, after which the push and pop methods on the instance automatically use the same key and heap type.
 
@@ -106,7 +108,7 @@ assert value == 14
 Heaps can also display themselves as ASCII art trees with the `.ascii_tree()` method.
 
 
-### Priority Queue
+## Priority Queue
 The priority queue is implemented using [heap operations](#heap) to insert an element with a specified priority (with lower priorities corresponding to more important elements).
 Oftentimes, simple implementations use tuples of an element's priority, and the element itself, in the underlying heap structure, because tuples are ordered in a recursive manner by the order of each or their elements.
 The issue with this is that the queued elements will then be compared against each other in cases where 2 elements have the same priorities. If the queue is used with instances of a class that doesn't support comparison operations, an error will be raised.
@@ -134,7 +136,7 @@ most_important = q.get()
 assert most_important == 42
 ```
 
-### Linked List
+## Linked List
 Linked lists are implemented using a `Node` class which stores an element in the list, and pointers to the next and previous nodes.
 A sentinel node `nil` is used to represent the end of the list and point (via its `.next` and `.prev` attributes) to the head and tail of the list.
 
@@ -155,8 +157,9 @@ first = q.popleft()
 assert first == 0
 ```
 
-## Algorithms
+# Algorithms
 
-### Formal languages
+## Formal languages
 On the topic of formal languages, I will typically use Hopcroft, Motwani, and Ullman (HMU) as a reference:
 John E. Hopcroft, Rajeev Motwani, Jeffrey D. Ullman - Introduction to automata theory, languages, and computation, 3rd edition (2006)
+
