@@ -316,19 +316,19 @@ class ParseForestNode:
                 #
             #
         #
-    
-    def __iter__(self) -> Iterator[ParseNode]:
-        for tree in self.generate_parse_trees():
-            yield tree
-        #
     #
 
 
 @dataclass
 class ParseForest:
+    """Wrapper for parse forests.
+    This is to allow a similar interface for 'empty' forests, representing
+    cases where no parse tree exists. Use None as root for an empty forest."""
+
     root: ParseForestNode|None
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[ParseNode]:
+        """Iterator over all parse trees"""
         if self.root is None:
             return iter(())
         

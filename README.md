@@ -232,7 +232,10 @@ assert grammar_is_cnf(G_cnf)
 ### CYK algorithm and parse trees
 The CYK algorithm is a dynamic programming algorithm, can efficiently determine whether a sentence a context-free grammar in Chomsky Normal Form implemented in the `CYKParser` class.
 
-TODO: Short description of parse trees, parse forests, and the CYK parser
+When a parser is initialized, it automatically converts is grammar to CNF and stores it.
+Afterwarts, it can determine whether its grammar accepts a given sentence via the `.accept(sentence)` method, e.g. `parser.accepts(('a', 'b', 'a'))`.
+
+A parse tree can be obtained by the `.parse` method, returning the root node of a parse tree (or `None`, is the sentence is not accepted). It's also possible to obtain every possible parse tree, in case the grammar is ambiguous (has multiple ways of deriving a sentence). This can be done using the `.make_parse_forest` method, which returns a `ParseForest` instance. If the sentence is not accepted, the forest is empty, and contains no trees. The `ParseForest` class supports iteration over the trees it encodes, e.g. `for tree in parse_forest: ...`.
 
 ```python
 from dsa.formal_languages import (
@@ -256,12 +259,19 @@ g: productiontype = {
 G = CFG(g, S)
 parser = CYKParser(G)
 
-# Verify a sentence as producible by the grammar
+# Verify that the grammar accepts the sentence
 sentence = ('a', 'a', 'a')
 assert parser.accepts(sentence)
+
+# get a parse tree
+parse_tree = parser.parse(sentence)
+assert parse_tree.sentence() == sentence
 
 # Iterate over all possible parse trees
 forest = parser.make_parse_forest(sentence)
 for tree in forest:
-    print(tree.ascii_tree())
+    assert tree.sentence() == sentence
 ```
+
+TODO explain parse trees and ascii format of them!!!
+Also TODO: Maybe make an ascii representation of derivations like A => A B => ...
