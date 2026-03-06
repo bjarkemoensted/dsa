@@ -322,3 +322,15 @@ class ParseForestNode:
             yield tree
         #
     #
+
+
+@dataclass
+class ParseForest:
+    root: ParseForestNode|None
+
+    def __iter__(self):
+        if self.root is None:
+            return iter(())
+        
+        return iter(self.root.generate_parse_trees())
+    #

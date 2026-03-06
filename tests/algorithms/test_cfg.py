@@ -11,7 +11,7 @@ from dsa.formal_languages.types import (
     Nonterminal,
     productiontype
 )
-from dsa.formal_languages.parse_trees import brute_force_sentences
+from dsa.formal_languages.parse_trees import ParseNode, brute_force_sentences
 
 from ..datasets import cfg_examples
 
@@ -256,7 +256,7 @@ class TestCFGMembership(unittest.TestCase):
 
             for sentence, producible in ex.sentences:
                 with self.subTest(grammar=grammar_name, sentence=sentence):
-                    result = parser.is_producible(sentence)
+                    result = parser.accepts(sentence)
                     self.assertEqual(
                         result,
                         producible,
@@ -268,9 +268,18 @@ class TestCFGMembership(unittest.TestCase):
     #
 
 
-class TestParseForests(unittest.TestCase):
+class TestParseTrees(unittest.TestCase):
     def setUp(self) -> None:
         self.examples = cfg_examples.all_examples
+
+    def test_parse_tress_for_accepted_sentences(self):
+        for ex in self.examples:
+            G = ex.grammar
+            parser = CYKParser(G)
+            
+            for sentence, accepted in ex.sentences:
+                tree = parser.parse(sentence)
+                self.assertIs(tree is None, not accepted, msg=f"Error in {ex.name}")
 
     def test_parse_forests_match_productions(self):
         """Check that parse forests generate one parse tree for each
@@ -330,6 +339,57 @@ class TestParseForests(unittest.TestCase):
                     for j in range(i+1, len(trees)):
                         self.assertNotEqual(trees[i], trees[j])
                     #
+                #
+            #
+        #
+    
+    def _check_parse_node_grammar_consistency(
+            self,
+            G: context_free.CFG,
+            node: ParseNode
+        ) -> None:
+        """Starts from an input node in a parse tre and recursively checks that parent-child relations
+        are consistent with the input grammar."""
+        
+        # Leaf nodes must contain 1) one of the grammar's terminals or 2) correspond to epsilon
+        if node.is_leaf:
+            if isinstance(node.symbol, Nonterminal):
+                # If nonterminal, check that empty productions are allowed
+                self.assertIn((), G.productions[node.symbol])
+            else:
+                # Otherwise, check that the symbol is among the grammar's nonterminals
+                self.assertIsInstance(node.symbol, str)
+                self.assertIn(node.symbol, G.terminals)
+            return
+
+        head = node.symbol
+        assert isinstance(head, Nonterminal)
+        # Node must contain the start symbol iff it is the root
+        if node.is_root:
+            self.assertEqual(head, G.start_symbol)
+        else:
+            self.assertNotEqual(head, G.start_symbol)
+        
+        # Check that the node's children correspond to a production
+        body = tuple(child.symbol for child in node.children)
+        self.assertIn(body, G.productions[head])
+
+        # Proceed to check child nodes
+        for child in node.children:
+            self._check_parse_node_grammar_consistency(G, child)
+        #
+
+    def test_parse_forest_trees_respect_grammar(self):
+        for ex in self.examples:
+            G = ex.grammar
+            parser = CYKParser(G)
+            for sentence, _ in ex.sentences:
+                forest = parser.make_parse_forest(sentence)
+                for tree in forest:
+                    self._check_parse_node_grammar_consistency(
+                        G=parser.G,
+                        node=tree
+                    )
                 #
             #
         #

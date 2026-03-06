@@ -9,7 +9,7 @@ from dsa.formal_languages.types import (
 )
 from dsa.formal_languages.context_free import CFG
 from dsa.formal_languages.cnf_tools import chomsky_normal_form
-from dsa.formal_languages.parse_trees import ParseForestNode
+from dsa.formal_languages.parse_trees import ParseForest, ParseForestNode, ParseNode
 
 
 class CYKParser:
@@ -116,37 +116,52 @@ class CYKParser:
         
         return P, back
 
-    def _determine_producible_from_parse_table(self, P: NDArray[np.bool_]) -> bool:
-        # Check whether the full string can be produced by the starting symbol
+    def _parse_table_accept(self, P: NDArray[np.bool_]) -> bool:
+        """Use the CYK parse table for a string, to determine whether the string
+        is a member of the language represented by the grammar"""
         producible = P[-1][0][self.start_symbol_index]
         res = producible.item()  # convert numpy bool to native type
         return res
 
-    def is_producible(self, sentence: sentencetype) -> bool:
+    def accepts(self, sentence: sentencetype) -> bool:
         """Determines whether the sentence is producible by the grammar"""
         # Build the parse table
         P, _ = self._parse(sentence=sentence)
-        res = self._determine_producible_from_parse_table(P=P)
-        return res
+        return self._parse_table_accept(P)
     #
 
-    def make_parse_forest(self, sentence: sentencetype) -> ParseForestNode:
+    def parse(self, sentence: sentencetype) -> ParseNode|None:
+        """Parse the sentence and return a parse tree (its root node) if the sentence is accepted.
+        If not accepted, None is returned instead."""
+        
+        forest = self.make_parse_forest(sentence=sentence)
+        try:
+            return next(iter(forest))
+        except StopIteration:
+            return None
+
+    def make_parse_forest(self, sentence: sentencetype) -> ParseForest:
         """Encode every parse tree for the sentence in a parse forest."""
 
-        _, back = self._parse(sentence=sentence)
+        P, back = self._parse(sentence=sentence)
 
-        res = build_parse_forest(
-            nonterminals=self.G.nonterminals,
-            sentence=sentence,
-            back=back,
-            A=self.start_symbol_index
-        )
+        accept = self._parse_table_accept(P)
+        root = None
+        if accept:
+            root = build_parse_forest(
+                G=self.G,
+                sentence=sentence,
+                back=back,
+                A=self.start_symbol_index
+            )
+        
+        res = ParseForest(root=root)
 
         return res
 
 
 def build_parse_forest(
-        nonterminals: tuple[Nonterminal, ...],
+        G: CFG,
         sentence: sentencetype,
         back: NDArray[np.object_],
         A: int,
@@ -163,36 +178,39 @@ def build_parse_forest(
     
     if length == -1:
         length = len(sentence)
+        assert G.nonterminals[A] == G.start_symbol
 
     # Make a PFN for the productions from A
     node = ParseForestNode(
         A=A,
         start=start,
         length=length,
-        nonterminals=nonterminals,
+        nonterminals=G.nonterminals,
         sentence=sentence
     )
 
     # Return if we're down to a single symbol
     if length == 1:
+        last_char = sentence[start:start+length]
+        assert last_char in G.productions[G.nonterminals[A]]
         return node
 
     # Otherwise, recurse on partitionings into left and right substrings
     for split, B, C in back[length, start, A]:
         left = build_parse_forest(
+            G=G,
             back=back,
             start=start,
             length=split,
             A=B,
-            nonterminals=nonterminals,
             sentence=sentence
         )
         right = build_parse_forest(
+            G=G,
             back=back,
             start=start + split,
             length=length - split,
             A=C,
-            nonterminals=nonterminals,
             sentence=sentence
         )
 

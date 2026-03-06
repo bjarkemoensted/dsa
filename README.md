@@ -230,6 +230,7 @@ assert grammar_is_cnf(G_cnf)
 ```
 
 ### CYK algorithm and parse trees
+The CYK algorithm is a dynamic programming algorithm, can efficiently determine whether a sentence a context-free grammar in Chomsky Normal Form implemented in the `CYKParser` class.
 
 TODO: Short description of parse trees, parse forests, and the CYK parser
 
@@ -257,7 +258,7 @@ parser = CYKParser(G)
 
 # Verify a sentence as producible by the grammar
 sentence = ('a', 'a', 'a')
-assert parser.is_producible(sentence)
+assert parser.accepts(sentence)
 
 # Iterate over all possible parse trees
 forest = parser.make_parse_forest(sentence)
