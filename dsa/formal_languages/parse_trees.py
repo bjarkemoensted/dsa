@@ -1,7 +1,8 @@
 from __future__ import annotations
+from collections import deque
 from dataclasses import dataclass, field
 import random
-from typing import Iterable, Iterator, TypedDict, Unpack
+from typing import Iterable, Iterator, Literal, TypeAlias, TypedDict, Unpack
 
 import anytree  # type: ignore
 
@@ -10,8 +11,13 @@ from dsa.formal_languages.types import (
     Nonterminal,
     productiontype,
     sentencetype,
-    sententialtype
+    sententialtype,
+    symboltype
 )
+
+
+# To pass parsing direction type
+directiontype: TypeAlias = Literal["leftmost", "rightmost"]
 
 
 class GenKwargs(TypedDict, total=False):
@@ -47,22 +53,68 @@ class ParseNode(anytree.AnyNode):
 
     def string(self) -> str:
         """Returns the sentence (yield) from this node as a string"""
-        s = "".join(self.iter_sentence())
+        s = "".join(self.iterate_sentence())
         return s
 
     def sentence(self) -> sentencetype:
-        return tuple(self.iter_sentence())
+        return tuple(self.iterate_sentence())
+    
+    def derivation(self, direction: directiontype|None=None) -> str:
+        steps = map(str, self.iterate_derivation(direction=direction))
+        res = " => ".join(steps)
+        return res
 
-    def iter_sentence(self) -> Iterator[str]:
+    def iterate_derivation(self, direction: directiontype|None=None) -> Iterator[sententialtype]:
+        """Iterate over each step in the derivation represented by the parse tree,
+        starting from this node.
+        Each step yields the sentential form with one additional nonterminal expanded.
+        direction: "leftmost" or "rightmost": Whether to always expand the leftmost or rightmost nonterminal
+            in sentential.
+        """
+
+        if direction is None:
+            direction = "leftmost"
+
+        # Maintain a list of expanded symbols, and the remaining symbols
+        expanded: list[symboltype] = []
+        remaining: deque[ParseNode] = deque([self])
+        yield tuple(node.symbol for node in remaining)
+
+        while remaining:
+            # Keep looking for the next node not yet expanded
+            elem = remaining.popleft()
+            assert isinstance(elem, ParseNode)
+            if isinstance(elem.symbol, str):
+                expanded.append(elem.symbol)
+                continue
+            
+            # Expand the node into its children
+            extend_elems = list(elem.children)
+            if direction == "leftmost":
+                # Keep remaining in normal order if leftmost, reverse order if rightmost
+                extend_elems.reverse()
+            
+            remaining.extendleft(extend_elems)
+
+            # Generate the sentential form after the expansion. Reverse order if rightmost
+            intermediate = expanded + [node.symbol for node in remaining]
+            if direction == "rightmost":
+                intermediate.reverse()
+            
+            sentential = tuple(intermediate)
+            yield sentential
+        #
+
+    def iterate_sentence(self) -> Iterator[str]:
         """Iterates over the sentence produced from this node."""
 
         if isinstance(self.symbol, Nonterminal):
             # For nonterminals, continue iterating over child nodes
             for child in self.children:
-                yield from child.iter_sentence()
-            #
+                yield from child.iterate_sentence()
+            
         elif isinstance(self.symbol, str):
-            # For terminals just use the node's symbol
+            # For terminals, just use the node's symbol
             assert self.is_leaf
             yield self.symbol
         else:
@@ -83,6 +135,9 @@ class ParseNode(anytree.AnyNode):
 
     def __repr__(self):
         return repr(self.symbol)
+    
+    def as_tuple(self) -> tuple:
+        return (self.symbol, tuple(c.as_tuple() for c in self.children))
 
 
 def grow_random_parse_tree(
@@ -159,7 +214,7 @@ def produce_random_sentence(
         **kwargs
     )
 
-    res = tuple(root.iter_sentence())
+    res = tuple(root.iterate_sentence())
     return res
 
 
