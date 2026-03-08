@@ -3,15 +3,22 @@ import random
 import typing
 import unittest
 
+
 from dsa.formal_languages import cnf_tools
 from dsa.formal_languages import context_free
 from dsa.formal_languages.cyk import CYKParser
 from dsa.formal_languages.types import (
     InvalidGrammarError,
     Nonterminal,
-    productiontype
+    productiontype,
+    sententialtype
 )
-from dsa.formal_languages.parse_trees import ParseNode, brute_force_sentences
+from dsa.formal_languages.parse_trees import (
+    brute_force_sentences,
+    directiontype,
+    grow_random_parse_tree,
+    ParseNode,
+)
 
 from ..datasets import cfg_examples
 
@@ -390,6 +397,89 @@ class TestParseTrees(unittest.TestCase):
                         G=parser.G,
                         node=tree
                     )
+                #
+            #
+        #
+    
+    @staticmethod
+    def _find_next_nonterminal(sentential: sententialtype, direction: directiontype) -> tuple[int, Nonterminal]|None:
+        """Get the first (index, value) of a nonterminal in a sentential form, in the specified direction"""
+        ind_sym = list(enumerate(sentential))
+
+        match direction:
+            case "leftmost":
+                pass
+            case "rightmost":
+                ind_sym.reverse()
+            case _:
+                raise ValueError(f"Invalid direction: {direction}")
+            #
+        
+        for i, sym in ind_sym:
+            if isinstance(sym, Nonterminal):
+                return i, sym
+            #
+        
+        return None
+
+    def _check_derivation(self, G: context_free.CFG, tree: ParseNode, direction: directiontype):
+        """Check that the tree derives a sentence according to grammar G."""
+        steps = tree.iterate_derivation(direction=direction)
+        # Derivation must start with the start symbol
+        current_state = next(steps)
+        self.assertTupleEqual(current_state, (G.start_symbol,))
+
+        for next_state in steps:
+            assert all(isinstance(symbol, (str, Nonterminal)) for symbol in next_state)
+            expand_ind_sym = self._find_next_nonterminal(sentential=current_state, direction=direction)
+            if expand_ind_sym is None:
+                break
+            
+            expand_ind, expand_sym = expand_ind_sym
+            len_diff = len(next_state) - len(current_state)
+            assert len_diff >= -1
+
+            cut_a, cut_b = expand_ind, expand_ind + len_diff + 1
+            left = next_state[:cut_a]
+            expanded = next_state[cut_a:cut_b]
+            right = next_state[cut_b:]
+
+            # Check new state and old state are identical except for expanded symbols
+            prev_left = current_state[:expand_ind]
+            prev_right = current_state[expand_ind+1:]
+            prev_parts = prev_left + prev_right
+            current_parts = left+right
+
+            # E.g. if a A S b => a A a b b, (expanded S into a b) compare a A b
+            self.assertTupleEqual(prev_parts, current_parts)
+
+            self.assertIn(expanded, G.productions[expand_sym])
+
+            current_state = next_state
+
+    def test_derivations(self) -> None:
+        for ex in self.examples:
+            rs = random.Random()
+            rs.seed(0)
+            G = ex.grammar
+            # Avoid double-checking identical trees
+            already_checked: set[tuple] = set()
+
+            for _ in range(20):
+                tree = grow_random_parse_tree(
+                    from_symbol=G.start_symbol,
+                    productions=G.productions,
+                    random_state=rs,
+                    target_max_depth=20
+                )
+
+                _tree_tup = tree.as_tuple()
+                if _tree_tup in already_checked:
+                    continue
+                already_checked.add(_tree_tup)
+
+                for direction in ("leftmost", "rightmost"):
+                    self._check_derivation(G=G, tree=tree, direction=direction)
                 #
             #
         #

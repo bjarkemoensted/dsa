@@ -263,8 +263,10 @@ parser = CYKParser(G)
 sentence = ('a', 'a', 'a')
 assert parser.accepts(sentence)
 
-# get a parse tree
+# Get a parse tree
 parse_tree = parser.parse(sentence)
+assert parse_tree is not None
+# Verify that it produces the
 assert parse_tree.sentence() == sentence
 
 # Iterate over all possible parse trees
@@ -273,5 +275,44 @@ for tree in forest:
     assert tree.sentence() == sentence
 ```
 
-TODO explain parse trees and ascii format of them!!!
-Also TODO: Maybe make an ascii representation of derivations like A => A B => ...
+Parse trees represent how a grammar can derive a sentence, via repeated expansion of the grammar's nonterminals.
+Each node in the tree holds a single symbol,
+Non-leaf nodes hold nonterminal symbols, and their children hold each of the symbols into which the nonterminal is expanded in the derivation represented by the tree.
+Leaf nodes always store string symbols, or nonterminals which generate the empty string ε.
+
+Continuing the prior example, we can display the sequence of steps for deriving the sentence with the `.derivation` method of the root node.
+The parse tree supports leftmost or rightmost derivations, i.e. repeated expansion of the leftmost or rightmost nonterminal:
+
+<!--pytest-codeblocks:cont-->
+```python
+
+s1 = parse_tree.derivation()
+assert s1 == "(S_1,) => (S, S) => ('a', S) => ('a', S, S) => ('a', 'a', S) => ('a', 'a', 'a')"
+
+# Optionally, expand the rightmost symbols instead
+s2 = parse_tree.derivation(direction="rightmost")
+assert s2 == "(S_1,) => (S, S) => (S, S, S) => (S, S, 'a') => (S, 'a', 'a') => ('a', 'a', 'a')"
+```
+
+<!--pytest-codeblocks:cont-->
+```python
+
+s1 = parse_tree.derivation()
+assert s1 == "(S_1,) => (S, S) => ('a', S) => ('a', S, S) => ('a', 'a', S) => ('a', 'a', 'a')"
+
+# Optionally, expand the rightmost symbols instead
+s2 = parse_tree.derivation(direction="rightmost")
+assert s2 == "(S_1,) => (S, S) => (S, S, S) => (S, S, 'a') => (S, 'a', 'a') => ('a', 'a', 'a')"
+```
+
+An ASCII-representation of a parse tree can also be obtained with `parse_tree.ascii_tree()`, which gives the following string:
+```
+S_1
+├── S
+│   └── 'a'
+└── S
+    ├── S
+    │   └── 'a'
+    └── S
+        └── 'a'
+```
