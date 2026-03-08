@@ -3,7 +3,7 @@ including a boolean indicating whether the sentences are members of the grammar"
 
 from dataclasses import dataclass
 
-from dsa.formal_languages.context_free import CFG
+from dsa.formal_languages.grammar import CFG
 from dsa.formal_languages.types import Nonterminal, productiontype, sentencetype
 
 
