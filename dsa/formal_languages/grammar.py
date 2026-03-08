@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Iterable, Iterator, Unpack
+from typing import Iterator, Unpack
 
 
 from dsa.formal_languages.types import (
@@ -15,34 +15,20 @@ from dsa.formal_languages.types import (
 from dsa.formal_languages import parse_trees
 
 
-def _iterate_symbols(production_rules: productiontype, include_keys=True) -> Iterator[str|Nonterminal]:
-    """Given some production rules, iterates over all symbols.
-    If include_keys is True (default), also yields the keys in the dictionary, i.e. the LHS nonterminals
-    in the production rules."""
-
-    for nonterm, outputs in production_rules.items():
-        if include_keys:
-            yield nonterm
-        for production in outputs:
-            if not isinstance(production, tuple):
-                raise TypeError  # just to make sure this isn't passed as a string (also iterable)
-            for symbol in production:
-                yield symbol
-            #
-        #
-    #
-
-
-def _get_distinct_instances[T](values: Iterable[object], target_class: type[T]) -> tuple[T, ...]:
-    """Takes an iterable of objects, and returns a tuple of the distinct instances of the specified class."""
+def _get_distinct_symbols[T](productions: productiontype, target_class: type[T]) -> tuple[T, ...]:
+    """Takes a dict with production rules. Returns a tuple of the distinct symbols of the specified class."""
 
     seen: set[T] = set()
     keep: list[T] = []
-    for val in values:
-        if not isinstance(val, target_class) or val in seen:
+
+    candidates: list[symboltype] = list(productions.keys())
+    candidates += [symbol for prods in productions.values() for body in prods for symbol in body]
+
+    for elem in candidates:
+        if not isinstance(elem, target_class) or elem in seen:
             continue
-        keep.append(val)
-        seen.add(val)
+        seen.add(elem)
+        keep.append(elem)
     
     return tuple(keep)
 
@@ -59,9 +45,9 @@ class CFG:
     def __init__(self, production_rules: productiontype, start_symbol: Nonterminal) -> None:
         self.productions = deepcopy(production_rules)
         self.start_symbol = start_symbol
-        _all_symbols = list(_iterate_symbols(self.productions))
-        self.terminals = _get_distinct_instances(_all_symbols, str)
-        self.nonterminals = _get_distinct_instances(_all_symbols, Nonterminal)
+
+        self.terminals = _get_distinct_symbols(self.productions, str)
+        self.nonterminals = _get_distinct_symbols(self.productions, Nonterminal)
         check_grammar_is_valid(self)
 
     def iter_rhs(self) -> Iterator[sententialtype]:
@@ -86,7 +72,23 @@ class CFG:
 
     @property
     def ascii(self) -> str:
-        return represent_grammar_as_string(self)
+        """Represents a grammar as a string, with production rules represented as e.g.
+        S → ('a', A, 'a').
+        Productions of the start symbol as displayed at the top."""
+        
+        # Order nonterminals alphabetically, except starting with the start symbol
+        nt_order = sorted(self.productions.keys(), key = lambda nt: (nt != self.start_symbol, nt))
+        lines: list[str] = []
+
+        for nt in nt_order:
+            these_prods = ['ε' if not symbol else str(symbol) for symbol in self.productions[nt]]
+            prod_rep = " | ".join(these_prods)
+                
+            lines.append(f"{nt} → {prod_rep}")
+
+        res = "\n".join(lines)
+        return res
+
     
     def random_sentence(self, **kwargs: Unpack[parse_trees.GenKwargs]) -> sentencetype:
         """Produces a random sentence"""
@@ -111,54 +113,6 @@ class CFG:
         res = set(brute)
 
         return res
-
-
-def get_useless_symbols(G: CFG) -> list[Nonterminal]:
-    """Detects 'useless' symbols in the grammar, meaning nonterminals which
-    do not appear in any derivation from the start symbol.
-    Identifies which nonterminals are 1) reachable and 2) can produce any
-    string (including the empty string)."""
-
-    reachable: set[Nonterminal] = set()
-    front: set[Nonterminal] = {G.start_symbol}
-
-    # Determine nonterms reachable from the start symbol
-    while front:
-        reachable |= front
-        heads = list(front)
-        front = set()
-        for head in heads:
-            for prod in G.productions.get(head, []):
-                for symbol in prod:
-                    if isinstance(symbol, Nonterminal):
-                        front.add(symbol)
-                    #
-                #
-            #
-        front -= reachable
-
-    # Determine which of the nonterms can produce strings
-    producing: set[Nonterminal] = set()
-    # Keep updating until we don't detect more string-producers
-    updated = True
-    while updated:
-        n_determined = len(producing)
-        updated = False
-        for head, productions in G.productions.items():
-            for rhs in productions:
-                # Nonterm can produce string if it can produce a string, or a string-producing nonterm
-                stringmaker = any(isinstance(symbol, str) or symbol in producing for symbol in rhs) or not rhs
-                if stringmaker:
-                    producing.add(head)
-                    producing |= {symbol for symbol in rhs if isinstance(symbol, Nonterminal)}
-                #
-            #
-        updated = len(producing) != n_determined
-
-    useful = reachable & producing
-    useless = set(G.nonterminals) - useful
-
-    return sorted(useless)
 
 
 def check_grammar_is_valid(G: CFG) -> None:
@@ -194,22 +148,4 @@ def check_grammar_is_valid(G: CFG) -> None:
     _missing = sorted(set(G.nonterminals) - set(G.productions.keys()))
     if _missing:
         raise InvalidGrammarError(f"Some nonterminals have no productions: {', '.join(map(str, _missing))}")
-
-
-def represent_grammar_as_string(grammar: CFG) -> str:
-    """Represents a grammar as a string, with production rules represented as e.g.
-    S → ('a', A, 'a').
-    Productions of the start symbol as displayed at the top."""
-    
-    # Order nonterminals alphabetically, except starting with the start symbol
-    nt_order = sorted(grammar.productions.keys(), key = lambda nt: (nt != grammar.start_symbol, nt))
-    lines: list[str] = []
-
-    for nt in nt_order:
-        these_prods = ['ε' if not symbol else str(symbol) for symbol in grammar.productions[nt]]
-        prod_rep = " | ".join(these_prods)
-            
-        lines.append(f"{nt} → {prod_rep}")
-
-    res = "\n".join(lines)
-    return res
+    #

@@ -3,8 +3,7 @@ from copy import deepcopy
 from itertools import combinations
 from typing import Callable, Iterable, Iterator
 
-from dsa.formal_languages.context_free import (
-    get_useless_symbols,
+from dsa.formal_languages.grammar import (
     CFG
 )
 from dsa.formal_languages.types import (
@@ -12,6 +11,54 @@ from dsa.formal_languages.types import (
     productiontype,
     sententialtype
 )
+
+
+def get_useless_symbols(G: CFG) -> list[Nonterminal]:
+    """Detects 'useless' symbols in the grammar, meaning nonterminals which
+    do not appear in any derivation from the start symbol.
+    Identifies which nonterminals are 1) reachable and 2) can produce any
+    string (including the empty string)."""
+
+    reachable: set[Nonterminal] = set()
+    front: set[Nonterminal] = {G.start_symbol}
+
+    # Determine nonterms reachable from the start symbol
+    while front:
+        reachable |= front
+        heads = list(front)
+        front = set()
+        for head in heads:
+            for prod in G.productions.get(head, []):
+                for symbol in prod:
+                    if isinstance(symbol, Nonterminal):
+                        front.add(symbol)
+                    #
+                #
+            #
+        front -= reachable
+
+    # Determine which of the nonterms can produce strings
+    producing: set[Nonterminal] = set()
+    # Keep updating until we don't detect more string-producers
+    updated = True
+    while updated:
+        n_determined = len(producing)
+        updated = False
+        for head, productions in G.productions.items():
+            for rhs in productions:
+                # Nonterm can produce string if it can produce a string, or a string-producing nonterm
+                stringmaker = any(isinstance(symbol, str) or symbol in producing for symbol in rhs) or not rhs
+                if stringmaker:
+                    producing.add(head)
+                    producing |= {symbol for symbol in rhs if isinstance(symbol, Nonterminal)}
+                #
+            #
+        updated = len(producing) != n_determined
+
+    useful = reachable & producing
+    useless = set(G.nonterminals) - useful
+
+    return sorted(useless)
 
 
 def grammar_is_cnf(G: CFG, allow_empty_string_from_start=True) -> bool:

@@ -7,7 +7,7 @@ from dsa.formal_languages.types import (
     Nonterminal,
     sentencetype
 )
-from dsa.formal_languages.context_free import CFG
+from dsa.formal_languages.grammar import CFG
 from dsa.formal_languages.cnf_tools import chomsky_normal_form
 from dsa.formal_languages.parse_trees import ParseForest, ParseForestNode, ParseNode
 

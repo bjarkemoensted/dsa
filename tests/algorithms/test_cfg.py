@@ -5,7 +5,7 @@ import unittest
 
 
 from dsa.formal_languages import cnf_tools
-from dsa.formal_languages import context_free
+from dsa.formal_languages.grammar import CFG
 from dsa.formal_languages.cyk import CYKParser
 from dsa.formal_languages.types import (
     InvalidGrammarError,
@@ -40,7 +40,7 @@ class TestCFG(unittest.TestCase):
 
     def test_init(self) -> None:
         for grammar in self.grammars:
-            self.assertIsInstance(grammar, context_free.CFG)
+            self.assertIsInstance(grammar, CFG)
         #
     
     def test_productions(self) -> None:
@@ -75,7 +75,7 @@ class TestCFG(unittest.TestCase):
         # Check error when attempting to initialize a 'dead end' grammar (nonterminal with no productions)
         ex = cfg_examples.example_illegal
         with self.assertRaises(InvalidGrammarError):
-            _ = context_free.CFG(
+            _ = CFG(
                 production_rules=ex.productions,
                 start_symbol=ex.start_symbol
             )
@@ -90,7 +90,7 @@ class TestUselessSymbolDetection(unittest.TestCase):
         
         for ex in cfg_examples.all_examples:
             for G in (ex.grammar, cnf_tools.chomsky_normal_form(ex.grammar)):
-                useless = context_free.get_useless_symbols(G)
+                useless = cnf_tools.get_useless_symbols(G)
                 msg = f"Example {ex.name} labelled start symbol {G.start_symbol} as useless"
                 self.assertNotIn(G.start_symbol, useless, msg)
 
@@ -112,8 +112,8 @@ class TestUselessSymbolDetection(unittest.TestCase):
             C: [(B, "x")]
         }
 
-        G = context_free.CFG(g, S)
-        useless = set(context_free.get_useless_symbols(G))
+        G = CFG(g, S)
+        useless = set(cnf_tools.get_useless_symbols(G))
         truly_useless = {B, C}
         self.assertSetEqual(useless, truly_useless)
     #
@@ -132,7 +132,7 @@ class TestCNF(unittest.TestCase):
             ex.grammar for ex in self.examples
         ]
 
-    def _partially_converted(self, last_step: str) -> typing.Iterator[context_free.CFG]:
+    def _partially_converted(self, last_step: str) -> typing.Iterator[CFG]:
         """Do some of the steps in converting the test grammars into CNF, stopping at the step
         with the specified name.
         This is to simplify testing that individual steps work."""
@@ -157,7 +157,7 @@ class TestCNF(unittest.TestCase):
             if not encountered:
                 raise RuntimeError(f"Didn't encounter conversion step: {last_step}")
             
-            G_converted = context_free.CFG(
+            G_converted = CFG(
                 start_symbol=converter.start_symbol,
                 production_rules=converter.production_rules
             )
@@ -217,7 +217,7 @@ class TestCNF(unittest.TestCase):
 
     def test_useless_symbol_detection(self):
         G = cfg_examples.example_useless.grammar
-        useless_symbols = context_free.get_useless_symbols(G)
+        useless_symbols = cnf_tools.get_useless_symbols(G)
         self.assertGreater(len(useless_symbols), 0)
 
     def test_cnf_detection(self):
@@ -352,7 +352,7 @@ class TestParseTrees(unittest.TestCase):
     
     def _check_parse_node_grammar_consistency(
             self,
-            G: context_free.CFG,
+            G: CFG,
             node: ParseNode
         ) -> None:
         """Starts from an input node in a parse tre and recursively checks that parent-child relations
@@ -422,7 +422,7 @@ class TestParseTrees(unittest.TestCase):
         
         return None
 
-    def _check_derivation(self, G: context_free.CFG, tree: ParseNode, direction: directiontype):
+    def _check_derivation(self, G: CFG, tree: ParseNode, direction: directiontype):
         """Check that the tree derives a sentence according to grammar G."""
         steps = tree.iterate_derivation(direction=direction)
         # Derivation must start with the start symbol
