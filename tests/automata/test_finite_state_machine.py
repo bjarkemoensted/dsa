@@ -120,3 +120,37 @@ class TestNFA(unittest.TestCase):
         for string, match in nfa1_cases:
             machine_match = NFA1.accepts(string)
             self.assertIs(match, machine_match, f"Error with string {string}. Expected {match}, got {machine_match}")
+
+    def test_nfa_4(self) -> None:
+        """Checks example 1.35 in Sipser"""
+        nfa = NFA(
+            states={"q1", "q2", "q3"},
+            initial_state="q1",
+            alphabet={"a", "b"},
+            final_states={"q1",},
+            transitions={
+                ("q1", "b"): {"q2",},
+                ("q1", EPSILON): {"q3",},
+                ("q2", "a"): {"q2", "q3"},
+                ("q2", "b"): {"q3",},
+                ("q3", "a"): {"q1",},
+
+            }
+        )
+
+        cases = (
+            ("", True),
+            ("a", True),
+            ("baba", True),
+            ("baa", True),
+            ("b", False),
+            ("b", False),
+            ("bb", False),
+            ("babba", False),
+        )
+
+        for string, solution in cases:
+            print(string)
+            accepted = nfa.accepts(string)
+            self.assertIs(accepted, solution, f"Error for {string}")
+    #
