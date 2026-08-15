@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import Sequence
 
 
+EPSILON = None
+
+
 @dataclass
 class AutomatonBase[Q, S](ABC):
     states: set[Q]
@@ -46,15 +49,32 @@ class DFA[Q, S](AutomatonBase):
 
 @dataclass
 class NFA[Q, S](AutomatonBase):
-    transitions: dict[tuple[Q, S], set[Q]]
+    transitions: dict[tuple[Q, S|None], set[Q]]  # !!!
 
+    def _get_epsilon_transitions(self, from_state: Q) -> set[Q]:
+            # TODO just do this with a queue? !!!
+            res: set[Q] = set()
+            front = {from_state,}
+            seen = front
+            while front:
+                neighbors = set.union(*(self.transitions.get((state, EPSILON), set()) for state in front))
+                new_ = neighbors - seen
+                seen |= new_
+                res |= new_
+                front = new_
+
+            return res
+    
     def accepts(self, string: Sequence) -> bool:
-        states = {self.initial_state}
+        states = {self.initial_state} | self._get_epsilon_transitions(self.initial_state)
         for character in string:
-            states = set.union(*(self.transitions[(state, character)] for state in states))
+            
+            states = set.union(*(self.transitions.get((state, character), set()) for state in states))
+            eps = set.union(*(self._get_epsilon_transitions(state) for state in states))
+            states |= eps
 
         end_states = states.intersection(self.final_states)
         res = len(end_states) > 0
         return res
 
-    # TODOÆ epsilon transitions and regex parsing/Thompson's construction
+    # TODO: epsilon transitions and regex parsing/Thompson's construction
