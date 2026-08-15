@@ -49,32 +49,35 @@ class DFA[Q, S](AutomatonBase):
 
 @dataclass
 class NFA[Q, S](AutomatonBase):
-    transitions: dict[tuple[Q, S|None], set[Q]]  # !!!
+    transitions: dict[tuple[Q, S|None], set[Q]]
 
-    def _get_epsilon_transitions(self, from_state: Q) -> set[Q]:
-            # TODO just do this with a queue? !!!
-            res: set[Q] = set()
-            front = {from_state,}
-            seen = front
-            while front:
-                neighbors = set.union(*(self.transitions.get((state, EPSILON), set()) for state in front))
-                new_ = neighbors - seen
-                seen |= new_
-                res |= new_
-                front = new_
+    def _get_epsilon_transitions(self, *states: Q) -> set[Q]:
+        """Given some states, returns the set of other states reachable via epsilon transitions"""
+        res: set[Q] = set()
+        front = set(states)
+        seen = front
+        while front:
+            neighbors = set.union(*(self.transitions.get((state, EPSILON), set()) for state in front))
+            new_ = neighbors - seen
+            seen |= new_
+            res |= new_
+            front = new_
 
-            return res
+        return res
     
-    def accepts(self, string: Sequence) -> bool:
+    def accepts(self, string: Sequence[S]) -> bool:
         states = {self.initial_state} | self._get_epsilon_transitions(self.initial_state)
         for character in string:
-            
+            # No match if there's no states left to iterate from
+            if not states:
+                break
+            # Consume next character
             states = set.union(*(self.transitions.get((state, character), set()) for state in states))
-            eps = set.union(*(self._get_epsilon_transitions(state) for state in states))
-            states |= eps
+            # Consider empty string transitions
+            states |= self._get_epsilon_transitions(*states)
 
         end_states = states.intersection(self.final_states)
         res = len(end_states) > 0
         return res
 
-    # TODO: epsilon transitions and regex parsing/Thompson's construction
+    # TODO: regex parsing/Thompson's construction
