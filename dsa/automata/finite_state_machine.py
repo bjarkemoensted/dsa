@@ -1,10 +1,24 @@
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 
-from typing import Sequence
+from typing import Sequence, Self
 
 
-EPSILON = None
+class Epsilon:
+    """Singleton for epsilon-transitions.
+    This is just to avoid using None to represent the input for an epsilon
+    transition, as None might be a valid character in an alphabet as well"""
+
+    _inst: Self|None = None
+
+    def __new__(cls) -> Self:
+        if cls._inst is None:
+            cls._inst = super().__new__(cls)
+        return cls._inst
+    #
+
+
+EPSILON = Epsilon()
 
 
 @dataclass
@@ -49,7 +63,7 @@ class DFA[Q, S](AutomatonBase):
 
 @dataclass
 class NFA[Q, S](AutomatonBase):
-    transitions: dict[tuple[Q, S|None], set[Q]]
+    transitions: dict[tuple[Q, S|Epsilon], set[Q]]
 
     def _get_epsilon_transitions(self, *states: Q) -> set[Q]:
         """Given some states, returns the set of other states reachable via epsilon transitions"""
