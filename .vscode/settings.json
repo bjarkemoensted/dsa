@@ -12,5 +12,5 @@
         ".pytest_cache": true,
         ".ruff_cache": true,
     },
-    "python.analysis.autoImportCompletions": true
+    "python.analysis.autoImportCompletions": false
 }
