@@ -1,10 +1,7 @@
 from __future__ import annotations
-from abc import ABC
-from dataclasses import dataclass
-from typing import get_args, Iterator, Literal, Sequence, TypeIs
-
-
-type RegEx[T] = Atom[T] | Concat[T] | Union[T] | Star[T] | Empty[T]
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, fields
+from typing import ClassVar, get_args, Iterator, Literal, Sequence, TypeIs
 
 
 class ParseError(Exception):
@@ -12,13 +9,20 @@ class ParseError(Exception):
 
 
 @dataclass
-class BaseNode(ABC):
+class BaseNode[T](ABC):
+    leaf: ClassVar[bool]
 
     def __repr__(self) -> str:
         return "EYY"
-    
+
+    @abstractmethod
     def children(self) -> Iterator[BaseNode]:
-        yield from ()
+        raise NotImplementedError
+
+    @classmethod
+    def n_args(cls) -> int:
+        n = len(fields(cls))
+        return n
 
     def repr_node(self) -> str:
         return f"{self.__class__.__name__}"
@@ -28,44 +32,77 @@ class BaseNode(ABC):
         print(f"{space}{self.repr_node()}")
         for child in self.children():
             child.display(indent=indent + 2)
+        #
 
 
 @dataclass
 class Atom[T](BaseNode):
+    leaf: ClassVar[bool] = True
     value: T
+
     def repr_node(self) -> str:
         return str(self.value)
 
-
-@dataclass
-class Concat[T](BaseNode):
-    left: RegEx[T]
-    right: RegEx[T]
-
     def children(self) -> Iterator[BaseNode]:
-        yield from (self.left, self.right)
-
-
-@dataclass
-class Union[T](BaseNode):
-    left: RegEx[T]
-    right: RegEx[T]
-
-    def children(self) -> Iterator[BaseNode]:
-        yield from (self.left, self.right)
-
-
-@dataclass
-class Star[T](BaseNode):
-    expr: RegEx[T]
-
-    def children(self) -> Iterator[BaseNode]:
-        yield self.expr
+        yield from ()
+    #
 
 
 @dataclass
 class Empty[T](BaseNode):
-    pass
+    leaf: ClassVar[bool] = True
+
+    def repr_node(self) -> str:
+        return "ε"
+
+    def children(self) -> Iterator[BaseNode]:
+        yield from ()
+    #
+
+
+
+@dataclass
+class Operator(BaseNode):
+    precedence: ClassVar[int]
+    leaf: ClassVar[bool] = False
+    
+    def __init_subclass__(cls, *, precedence: int, **kwargs) -> None:
+        super().__init_subclass__(**kwargs)
+        cls.precedence = precedence
+
+    def children(self) -> Iterator[BaseNode]:
+        for field in fields(self):
+            assert isinstance(field, BaseNode)
+            yield field
+        #
+    #
+
+
+@dataclass
+class Concat[T](Operator, precedence=2):
+    left: BaseNode[T]
+    right: BaseNode[T]
+
+    def children(self) -> Iterator[BaseNode]:
+        yield from (self.left, self.right)
+
+
+@dataclass
+class Union[T](Operator, precedence=1):
+    left: BaseNode[T]
+    right: BaseNode[T]
+
+    def children(self) -> Iterator[BaseNode]:
+        yield from (self.left, self.right)
+
+
+@dataclass
+class Star[T](Operator, precedence=3):
+    expr: BaseNode[T]
+
+    def children(self) -> Iterator[BaseNode]:
+        yield self.expr
+
 
 
 # Special characters for regular expressions
@@ -77,35 +114,31 @@ def is_special(char: object) -> TypeIs[specialchar]:
     return isinstance(char, str) and (char in _special_chars)
 
 
-# TODO get rid of this and just use the Node classes directly
-@dataclass
-class Operator:
-    op: Literal["*", "|", "."]
+OPERATOR_SYMBOLS: dict[specialchar, type[Operator]] = {
+    "*": Star,
+    "|": Union
+}
 
 
 class Parser[T]:
-    PRECEDENCE: dict[str, int] = {
-        "|": 1,
-        ".": 2,
-        "*": 3
-    }
 
     def __init__(self, expr: Sequence[T|specialchar]) -> None:
         self.expr: Sequence[T|specialchar] = expr
         # Store operations and parentheses on a stack
-        self.operators: list[Operator|Literal["("]] = []
+        self.operators: list[type[Operator]|None] = []  # None represents opening brackets '('
+
         # Output queue for postfix notation
-        self.postfix: list[T|Operator] = []
+        self.postfix: list[Atom[T]|type[Operator]] = []
         self.preprocessed = False
 
-    def _push_operator(self, operator: Operator) -> None:
+    def _push_operator(self, operator: type[Operator]) -> None:
         while (
             self.operators
-            and self.operators[-1] != "("
-            and self.PRECEDENCE[self.operators[-1].op] >= self.PRECEDENCE[operator.op]
+            and self.operators[-1] is not None
+            and self.operators[-1].precedence >= operator.precedence
         ):
-            next_ = self.operators.pop()
-            assert isinstance(next_, Operator)
+            next_ = self.operators.pop()            
+            assert next_ is not None
             self.postfix.append(next_)
 
         self.operators.append(operator)
@@ -120,12 +153,12 @@ class Parser[T]:
             if not is_special(token):
                 # Normal characters go directly to the output queue
                 if can_concatenate:
-                    self._push_operator(Operator("."))
+                    self._push_operator(Concat)
 
-                self.postfix.append(token)
+                self.postfix.append(Atom(token))
             elif token == "(":
                 # Store opening parentheses on the stack
-                self.operators.append(token)
+                self.operators.append(None)
             elif token == ")":
                 # Pop from the operator stack until we find the matching opening parenthesis
                 matched = False
@@ -133,56 +166,52 @@ class Parser[T]:
                     if not self.operators:
                         raise ParseError(f"Unmatched right parenthesis at index {i}")
                     sym = self.operators.pop()
-                    if sym == "(":
+                    if sym is None:
                         matched = True
                     else:
                         self.postfix.append(sym)
-            elif token in self.PRECEDENCE:
-                self._push_operator(Operator(token))
+            elif token in OPERATOR_SYMBOLS:
+                self._push_operator(OPERATOR_SYMBOLS[token])
 
             can_concatenate = not is_special(token) or token in ("*",")",)
         
         # Put remaining operators in the output queue
         while self.operators:
             op = self.operators.pop()
-            assert isinstance(op, Operator)
+            assert op is not None
             self.postfix.append(op)
 
         self.preprocessed = True
 
-    def construct_ast(self) -> RegEx[T]:
+    def construct_ast(self) -> BaseNode[T]:
         if not self.preprocessed:
             raise RuntimeError
-        stack: list[RegEx[T]] = []
+        stack: list[BaseNode[T]] = []
 
         for token in self.postfix:
-            if isinstance(token, Operator):
-                match token.op:
-                    case "*":
-                        stack.append(Star(stack.pop()))
-                    case "|":
-                        right = stack.pop()
-                        left = stack.pop()
-                        stack.append(Union(left, right))
-                    case ".":
-                        right = stack.pop()
-                        left = stack.pop()
-                        stack.append(Concat(left, right))
-                    case _:
-                        raise ParseError(f"Invalid operator: {token.op}")
+            if isinstance(token, Atom):
+                stack.append(token)
             else:
-                stack.append(Atom(token))
-            
-        res = stack[0]
+                args = (stack.pop() for _ in range(token.n_args()))
+                elem = token(*args)
+                stack.append(elem)
+            #
+
+        res = stack.pop()
+        
+        if len(stack) != 0:
+            raise ParseError(f"{len(stack)} tokens left on stack after parsing")
         return res
 
-    def parse(self) -> RegEx[T]:
+    def parse(self) -> BaseNode[T]:
+        if len(self.expr) == 0:
+            return Empty()
         self.to_postfix()
         res = self.construct_ast()
         return res
 
 
-def regex_to_ast[T](expr: Sequence[T|specialchar]) -> RegEx[T]:
+def regex_to_ast[T](expr: Sequence[T|specialchar]) -> BaseNode[T]:
     parser = Parser(expr)
 
     ast = parser.parse()
@@ -196,3 +225,5 @@ nfa = regex_to_ast("aa|b")
 
 
 regex_to_ast("(a|b)*|a")
+
+regex_to_ast("")
