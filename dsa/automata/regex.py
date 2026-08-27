@@ -10,6 +10,8 @@ class ParseError(Exception):
 
 @dataclass
 class BaseNode[T](ABC):
+    """Base class for a node in the abstract syntax tree (AST)"""
+
     leaf: ClassVar[bool]
 
     def __repr__(self) -> str:
@@ -21,6 +23,10 @@ class BaseNode[T](ABC):
 
     @classmethod
     def n_args(cls) -> int:
+        """Number of fields in the dataclass.
+        This is used to infer the arity of operations. For example,
+        the 'Union' subclass requires 2 operands, 'left', and 'right'."""
+
         n = len(fields(cls))
         return n
 
@@ -37,6 +43,8 @@ class BaseNode[T](ABC):
 
 @dataclass
 class Atom[T](BaseNode):
+    """Node for a single character in an expression"""
+
     leaf: ClassVar[bool] = True
     value: T
 
@@ -50,6 +58,8 @@ class Atom[T](BaseNode):
 
 @dataclass
 class Empty[T](BaseNode):
+    """Special node to represent an empty string"""
+
     leaf: ClassVar[bool] = True
 
     def repr_node(self) -> str:
@@ -63,6 +73,9 @@ class Empty[T](BaseNode):
 
 @dataclass
 class Operator(BaseNode):
+    """Base class for nodes that represent an operation (Kleene star, concatenation, etc)"""
+
+    # Associate a precedence with each operation, for shunting yard algorithm
     precedence: ClassVar[int]
     leaf: ClassVar[bool] = False
     
@@ -80,6 +93,8 @@ class Operator(BaseNode):
 
 @dataclass
 class Concat[T](Operator, precedence=2):
+    """Node representing the concatenation operation, e.g. ab (implicit concatenation)"""
+
     left: BaseNode[T]
     right: BaseNode[T]
 
@@ -89,6 +104,8 @@ class Concat[T](Operator, precedence=2):
 
 @dataclass
 class Union[T](Operator, precedence=1):
+    """Node representing the union operation, e.g. a|b"""
+
     left: BaseNode[T]
     right: BaseNode[T]
 
@@ -98,6 +115,8 @@ class Union[T](Operator, precedence=1):
 
 @dataclass
 class Star[T](Operator, precedence=3):
+    """Node representing the Kleene star, e.g. a*"""
+
     expr: BaseNode[T]
 
     def children(self) -> Iterator[BaseNode]:
@@ -114,6 +133,7 @@ def is_special(char: object) -> TypeIs[specialchar]:
     return isinstance(char, str) and (char in _special_chars)
 
 
+# Map symbols to the corresponding operator class
 OPERATOR_SYMBOLS: dict[specialchar, type[Operator]] = {
     "*": Star,
     "|": Union
@@ -121,17 +141,25 @@ OPERATOR_SYMBOLS: dict[specialchar, type[Operator]] = {
 
 
 class Parser[T]:
+    """A regex parser. This is initialized with an expression consisting of any data type T, and
+    special characters (parentheses, operations).
+    It uses the shunting yard algorithm to transform the expression into postfix (reverse Polish) notation,
+    consisting only of atomic nodes and operations. Then, the AST is constructed from the postfix data."""
 
     def __init__(self, expr: Sequence[T|specialchar]) -> None:
         self.expr: Sequence[T|specialchar] = expr
-        # Store operations and parentheses on a stack
-        self.operators: list[type[Operator]|None] = []  # None represents opening brackets '('
+
+        # Operators and parentheses are stored here (parentheses represented with None)
+        self.operators: list[type[Operator]|None] = []
 
         # Output queue for postfix notation
         self.postfix: list[Atom[T]|type[Operator]] = []
         self.preprocessed = False
 
     def _push_operator(self, operator: type[Operator]) -> None:
+        """Handles operators during shunting yard algorithm.
+        Moves top operators with precedence higher than the new operator to the postfix data,
+        then pushes the new operator to the operator stack"""
         while (
             self.operators
             and self.operators[-1] is not None
@@ -184,26 +212,33 @@ class Parser[T]:
         self.preprocessed = True
 
     def construct_ast(self) -> BaseNode[T]:
+        """Construct AST from postfix data"""
+
+        # Make sure the postfix step has run
         if not self.preprocessed:
             raise RuntimeError
         stack: list[BaseNode[T]] = []
 
         for token in self.postfix:
+            # Push atomic tokens to the operand stack
             if isinstance(token, Atom):
                 stack.append(token)
             else:
+                # When encountering an operator, pop the required operands and apply
                 args = (stack.pop() for _ in range(token.n_args()))
                 elem = token(*args)
                 stack.append(elem)
             #
 
+        # If the expression was valid, the stack has the AST root node as its only element
         res = stack.pop()
-        
         if len(stack) != 0:
             raise ParseError(f"{len(stack)} tokens left on stack after parsing")
+
         return res
 
     def parse(self) -> BaseNode[T]:
+        """Parses regex and returns the AST root node"""
         if len(self.expr) == 0:
             return Empty()
         self.to_postfix()
