@@ -95,3 +95,5 @@ class NFA[Q, S](AutomatonBase):
         return res
 
     # TODO: regex parsing/Thompson's construction
+
+
