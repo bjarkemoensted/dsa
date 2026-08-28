@@ -1,7 +1,12 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, fields
-from typing import ClassVar, get_args, Iterator, Literal, Sequence, TypeIs
+from collections import defaultdict
+from dataclasses import dataclass, field, fields
+from itertools import count
+from functools import singledispatchmethod
+from typing import ClassVar, get_args, Iterator, Literal, Self, Sequence, TypeIs
+
+from dsa.automata.finite_state_machine import NFA, Epsilon, EPSILON
 
 
 class ParseError(Exception):
@@ -250,15 +255,101 @@ def regex_to_ast[T](expr: Sequence[T|specialchar]) -> BaseNode[T]:
     parser = Parser(expr)
 
     ast = parser.parse()
-    ast.display()
+    ast.display()  # !!!
 
     return ast
+
+
+@dataclass
+class Fragment[Q, S]:
+    initial_state: Q
+    final_state: Q
+    transitions: defaultdict[tuple[Q, S|Epsilon], set[Q]] = field(default_factory=lambda: defaultdict(set))
+
+    def add_transition(self, from_: Q, to_: Q, char: S|Epsilon=EPSILON) -> Self:
+        self.transitions[(from_, char)].add(to_)
+        return self
+    #
+
+
+class Constructor[Q]:
+    def __init__(self, node_generator: Iterator[Q]) -> None:
+        self.node_generator = node_generator
+
+    @singledispatchmethod
+    def build[S](self, ast: BaseNode[S]) -> Fragment[Q, S]:
+        raise NotImplementedError(f"No dispatch method registered for {type(ast)}")
+
+    def make_fragment(self):
+        """Make an empty fragment (with no transition rules)"""
+        u = next(self.node_generator)
+        v = next(self.node_generator)
+        res = Fragment(initial_state=u, final_state=v)
+        return res
+
+    @build.register
+    def _(self, ast: Atom):
+        res = self.make_fragment()
+        res.add_transition(from_=res.initial_state, to_=res.final_state, char=ast.value)
+        return res
+
+    @build.register
+    def _(self, ast: Union):
+        left = self.build(ast.left)
+        right = self.build(ast.right)
+
+        res = self.make_fragment()
+        res.transitions |= (left.transitions | right.transitions)
+
+        for component in (left, right):
+            res.add_transition(res.initial_state, component.initial_state)
+            res.add_transition(component.final_state, res.final_state)
+
+        return res
+
+    @build.register
+    def _(self, ast: Concat):
+        left = self.build(ast.left)
+        right = self.build(ast.right)
+
+        res = Fragment(
+            initial_state=left.initial_state,
+            final_state=right.final_state,
+            transitions=left.transitions | right.transitions
+        )
+
+        res.add_transition(from_ = left.final_state, to_ = right.initial_state)
+        return res
+
+    @build.register
+    def _(self, ast: Star):
+        # TODO implement Kleene star!!!
+        raise NotImplementedError
+
+    def __call__[S](self, ast: BaseNode[S]) -> NFA[Q, S]:
+        root_fragment = self.build(ast)
+
+        print("WOOP", root_fragment)
+
+        # TODO convert fregment into NFA
+        raise RuntimeError("convert into NFA!!!")
+
+
+def construct_NFA[S](expr: Sequence[S]) -> NFA[int, S]:
     
+    constructor = Constructor(node_generator=count())
+
+    ast = Parser(expr).parse()
+    res = constructor(ast)
+    return res
 
 
-nfa = regex_to_ast("aa|b")
+
+nfa = construct_NFA("a|b")
+
+#nfa = construct_NFA("aa|b")
 
 
-regex_to_ast("(a|b)*|a")
+#regex_to_ast("(a|b)*|a")
 
-regex_to_ast("")
+#regex_to_ast("")
