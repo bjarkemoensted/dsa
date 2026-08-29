@@ -232,8 +232,8 @@ class Parser[T]:
                 stack.append(token)
             else:
                 # When encountering an operator, pop the required operands and apply
-                args = (stack.pop() for _ in range(token.n_args()))
-                elem = token(*args)
+                args = tuple(stack.pop() for _ in range(token.n_args()))
+                elem = token(*reversed(args))
                 stack.append(elem)
             #
 
