@@ -15,7 +15,9 @@ class Epsilon:
         if cls._inst is None:
             cls._inst = super().__new__(cls)
         return cls._inst
-    #
+
+    def __repr__(self) -> str:
+        return "ε"
 
 
 EPSILON = Epsilon()
@@ -94,6 +96,19 @@ class NFA[Q, S](AutomatonBase):
         res = len(end_states) > 0
         return res
 
-    # TODO: regex parsing/Thompson's construction
+    def display_transitions(self) -> None:
+        for (u, c), targets in sorted(self.transitions.items()):
+            s = f"   {u} "
+            if u == self.initial_state:
+                s = f"-> {u} "
+            elif u in self.final_states:
+                s = f"  ({u})"
+
+            
+            for v in targets:
+                vs = f" {v} "
+                if v in self.final_states:
+                    vs = f"({v})"
+                print(f"{s} -- {c} --> {vs}")
 
 
