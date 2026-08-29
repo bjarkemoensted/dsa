@@ -238,7 +238,7 @@ class Parser[T]:
         # If the expression was valid, the stack has the AST root node as its only element
         res = stack.pop()
         if len(stack) != 0:
-            raise ParseError(f"{len(stack)} tokens left on stack after parsing")
+            raise ParseError(f"Error parsing '{self.expr} - '{len(stack)} tokens left on stack after parsing: {stack}")
 
         return res
 
@@ -269,8 +269,21 @@ class Fragment[Q, S]:
     def add_transition(self, from_: Q, to_: Q, char: S|Epsilon=EPSILON) -> Self:
         self.transitions[(from_, char)].add(to_)
         return self
-    #
 
+    def to_NFA(self) -> NFA[Q, S]:
+        states = {from_ for from_, _ in self.transitions.keys()} | set.union(*self.transitions.values())
+        alphabet = {char for _, char in self.transitions.keys() if char is not EPSILON}
+
+        nfa = NFA(
+            states=states,
+            initial_state=self.initial_state,
+            final_states={self.final_state,},
+            alphabet=alphabet,
+            transitions=dict(self.transitions)
+        )
+
+        return nfa
+        
 
 class Constructor[Q]:
     def __init__(self, node_generator: Iterator[Q]) -> None:
@@ -323,33 +336,33 @@ class Constructor[Q]:
 
     @build.register
     def _(self, ast: Star):
-        # TODO implement Kleene star!!!
-        raise NotImplementedError
+        outer = self.make_fragment()
+        inner = self.build(ast.expr)
+        
+        outer.transitions |= inner.transitions
+
+        epsilon_transitions = (
+            (outer.initial_state, inner.initial_state),
+            (inner.final_state, inner.initial_state),
+            (inner.final_state, outer.final_state),
+            (outer.initial_state, outer.final_state),
+        )
+
+        for u, v in epsilon_transitions:
+            outer.add_transition(u, v)
+
+        return outer
 
     def __call__[S](self, ast: BaseNode[S]) -> NFA[Q, S]:
         root_fragment = self.build(ast)
 
-        print("WOOP", root_fragment)
-
-        # TODO convert fregment into NFA
-        raise RuntimeError("convert into NFA!!!")
+        res = root_fragment.to_NFA()
+        return res
 
 
-def construct_NFA[S](expr: Sequence[S]) -> NFA[int, S]:
-    
+def regex_to_NFA[S](expr: Sequence[S]) -> NFA[int, S]:    
     constructor = Constructor(node_generator=count())
 
     ast = Parser(expr).parse()
     res = constructor(ast)
     return res
-
-
-
-nfa = construct_NFA("a|b")
-
-#nfa = construct_NFA("aa|b")
-
-
-#regex_to_ast("(a|b)*|a")
-
-#regex_to_ast("")
