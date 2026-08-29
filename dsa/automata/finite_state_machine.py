@@ -68,7 +68,10 @@ class DFA[Q, S](AutomatonBase):
         for character in string:
             if character not in self.alphabet:
                 return False
-            state = self.transitions[(state, character)]
+            try:
+                state = self.transitions[(state, character)]
+            except KeyError:
+                return False
 
         return state in self.final_states
 
