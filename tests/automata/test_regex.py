@@ -2,7 +2,7 @@ from itertools import product
 import re
 import unittest
 
-from dsa.automata.regex import regex_to_NFA, Parser, BaseNode, Concat
+from dsa.automata import regex
 
 
 patterns = (
@@ -37,8 +37,8 @@ class TestRegex(unittest.TestCase):
     def test_parsing(self) -> None:
         """Check that valid regexes can be parsed to an AST"""
         for pattern in patterns:
-            ast = Parser(pattern).parse()
-            self.assertIsInstance(ast, BaseNode)
+            ast = regex.Parser(pattern).parse()
+            self.assertIsInstance(ast, regex.ASTBaseNode)
 
     def test_accept(self) -> None:
         """Test that converting REs into NFAs gives the same accepted/rejected strings as the built-in
@@ -46,7 +46,7 @@ class TestRegex(unittest.TestCase):
 
         for pattern in patterns:
             compiled = re.compile(pattern)
-            nfa = regex_to_NFA(pattern)
+            nfa = regex.regex_to_NFA(pattern)
 
             for s in strings:
                 m = re.fullmatch(compiled, s)
@@ -72,7 +72,7 @@ class TestRegex(unittest.TestCase):
 
         for pattern, n_concats in cases:
             with self.subTest(pattern=pattern):
-                parser = Parser(pattern)
+                parser = regex.Parser(pattern)
                 parser.to_postfix()
-                n = sum(elem is Concat for elem in parser.postfix)
+                n = sum(elem is regex.Concat for elem in parser.postfix)
                 self.assertEqual(n, n_concats, f"Error parsing {pattern}: {n} != {n_concats}")
