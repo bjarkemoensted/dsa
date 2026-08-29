@@ -22,7 +22,7 @@ patterns = (
     '(a|b)',
     '(a|b)*',
     'a(a|b)*',
-    # '(ab)*',
+    '(ab)*',
     # '(ab)+',
     # 'a*b',
     # 'ab*',
@@ -55,7 +55,7 @@ class TestRegex(unittest.TestCase):
                 self.assertIs(
                     matched,
                     is_match,
-                    f"Compare pattern '{pattern}' against '{s}'. Expected match {is_match}, got {matched}"
+                    f"Check if pattern '{pattern}' matches string '{s}'."
                 )
             #
         #
