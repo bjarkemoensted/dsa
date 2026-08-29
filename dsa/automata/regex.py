@@ -291,7 +291,9 @@ def _NFA_from_fragment[Q, S](fragment: Fragment[Q, S]) -> NFA[Q, S]:
 
 class Constructor[Q]:
     """Helper class for constructing an NFA from an AST.
-    Instances of this class can be called with an AST to obtain the corresponding NFA."""
+    Instances of this class can be called with an AST to obtain the corresponding NFA.
+    This works by implementing Thompson's construction, as described in
+    Cooper and Torczon, section 2.7"""
 
     def __init__(self, node_generator: Iterator[Q]) -> None:
         """Instantiate a constructor.

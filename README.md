@@ -9,9 +9,14 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Heap](#heap)
   - [Priority Queue](#priority-queue)
   - [Linked List](#linked-list)
-- [Algorithms](#algorithms)
-  - [Context-free grammars](#context-free-grammars)
-    - [CYK algorithm and parse trees](#cyk-algorithm-and-parse-trees)
+- [Automata \& Formal Languages](#automata--formal-languages)
+  - [Regular languages \& Finite State Automata](#regular-languages--finite-state-automata)
+    - [Finite State Automata](#finite-state-automata)
+    - [Regular Expressions](#regular-expressions)
+  - [Context-free grammars \& Pushdown Automata](#context-free-grammars--pushdown-automata)
+    - [Context-Free Grammars (CFGs)](#context-free-grammars-cfgs)
+      - [CYK algorithm and parse trees](#cyk-algorithm-and-parse-trees)
+    - [Pushdown Automata](#pushdown-automata)
 
 # Data structures
 A few elementary data structures have been implemented so far.
@@ -158,14 +163,122 @@ first = q.popleft()
 assert first == 0
 ```
 
-# Algorithms
+# Automata & Formal Languages
+This section concerns formal language theory, along with the associated automata theory.
 
-## Context-free grammars
+This subject is pretty tricky (to me anyways), and sources occationally differ slightly in how they do things.
+I refer to multiple books for that reason, depending on the exact topic, because one book might explain one topic well, and skip over another.
+
+Some basic terminology:
+
+| Term | Description |
+|-----|-----|
+| State | An allowed state in an automaton. Often represented as nodes in a graph (with edges representing state transitions) |
+| Alphabet | The set of allowed characters in the input to an automaton. For example, an automaton might recognize strings like 'ab', 'aab', 'aaab', etc., and have alphabet `{'a', 'b'}` |
+| Initial state| The state in which an automaton begins its processing of a string. An initial state is often depicted with an ingoing arrow. For instance, if the initial state is `0`, it might be shown as ` -> 0` |
+| Final state | Also called *accept state* in some sources. If an automata ends in one the final states after processing a string, the string is *accepted* by the automaton. Final states are often circled in depection, e.g. `(0)` |
+| Transitions | Also called 'transition function' or 'transition rules'. Given a state and a single input token (possible an empty string in some cases), the transition function determines which subsequent states are reachable. Formally, the transition function maps the Cartesian product of states and alphabet onto the states, e.g. it maps any possible combination of one state and one character in the alphabet to a new state. For simplicity, I implement this as a dictionary, not necessary including all state-character combinations among the keys. If an automaton encounters a combination which is absent in the transition dictionary, it will reject the string being processed. This is equivalent to mapping each such combination to some terminal state from which escape is impossible, and so doesn't fundamentally change anything. Transitions are often depicted as arrows, with the character above or on the arrow. For example, `0 -a-> 1` might indicate that the `0` can transition to the `1` state, by consuming the character 'a'.|
+| Empty string | An empty stirng containing no characters. Often represented as epsilon "ε". A transition with an empty string means the transition is allowed without consuming from the input |
+| accept / reject| An automaton can accept or reject a string. For example, the automaton ->  `-> 0 -a-> 1 --b-ε-> (2)` accepts strings  'ab' (by consuming first a and then b), and 'a' (by consuming first a, then the empty string), and rejects all other strings |
+| Language | The set of all strings accepted by an automaton. We say that an automaton *recognizes* the language made up of all the strings it accepts |
+
+
+## Regular languages & Finite State Automata
+An automaton is a simple state machine which holds a number of allowed states, and rules for transitioning between states when tokens are consumed from an input.
+Automata can *accept* or *reject* an input, meaning determine whether the input matches some pattern defined by the automaton.
+On the topic of automata, I mainly refer to Michael Sipser (Sipser):
+> Sipser M. *Introduction to the Theory of Computation*, 3rd edition (2012)
+
+### Finite State Automata
+Automata are implemented as simple dataclasses.
+Deterministic finite automata (DFAs) can be instantiated, and used to match strings, as shown in the following example:
+
+```python
+from dsa.automata import DFA
+
+
+t: dict[tuple[int, str], int] = {
+    (0, "a"): 1,  # even number of 'a' seen
+    (1, "a"): 0,  # odd number of 'a' seen
+    (1, "b"): 2,  # accept if we get 'b' after odd N a
+}
+
+dfa = DFA(
+    initial_state=0,
+    final_states={2,},
+    transitions=t,
+    states={0, 1, 2},
+    alphabet={'a', 'b'}
+)
+
+good_strings = ("ab", "aaab")
+bad_strings = ("b", "aab")
+
+assert all(dfa.accepts(s) for s in good_strings)
+assert all(not dfa.accepts(s) for s in bad_strings)
+```
+
+Non-determininistic finite automata (NFAs) are similar, except 1) they allow multiple target nodes given a single source node and input token combination, and 2) they allow 'epsilon transitions', meaning transitions from one state to another, without consuming input.
+
+To keep the machinery for NFAs agnostic as to the type of their inputs, the empty string is represented by a singleton `EPSILON`. This is to avoid complications if one were to use e.g. `''` or `None` as valid characters in an alphabet.
+
+An NFA can be instantiated in exactly the same way, except the transition dict now to a set of target nodes, rather than a single node.
+
+<!--pytest-codeblocks:cont-->
+```python
+from dsa.automata import NFA
+
+nfa = NFA(
+    initial_state=0,
+    final_states={2,},
+    transitions={k: {v,} for k, v in t.items()},  # use a set of target states this time
+    states={0, 1, 2},
+    alphabet={'a', 'b'}
+)
+
+assert all(nfa.accepts(s) for s in good_strings)
+assert all(not nfa.accepts(s) for s in bad_strings)
+
+```
+
+It can be shown that DFA's and NFA's are equivalent, meaning any NFA can be converted into a DFA which recognizes the same language, and vice versa.
+
+The term 'regular language' refers to any language (set of strings) recognized by a finite state automaton. For example, the simple automata from the previous code snippets define the language `{'ab', 'aaab', 'aaaaab', ...}`
+
+### Regular Expressions
+A regular expression is a small pattern which can be compared against strings. For example `"aab*"` means "the character 'a' twice, followed by the character 'b' repeated zero or more times". Some special characters in regular expressions:
+
+* `|` - union. For example `'a|b'` represents 'a' or 'b'.
+* `*` - Kleene star. For example `'a*'` means 'a' repeated zero or more times.
+* `()` - Parentheses. Used to override order of operations. For example,  `aa|b` means either 'aa' or 'b', whereas `a(a|b)` means 'a' followed by 'a' or 'b' (matching 'aa' or 'ab').
+
+Any well-formed regular expression can be converted into an NFA, and thus corresponds to a regular language.
+
+The conversion from a regular expression into an NFA follows section 2.7 in *Cooper and Torczon*:
+> Cooper, Keith D., Linda Torczon. *Engineering a compiler*, 2004.
+
+The approach uses *Thompson's construction*, breaking a regular expression into smaller components, turning each into a small fragment of an NFA, then combining them using various rules. For example, 2 fragments F1 and F2, which accept 'a', and 'b', respectively, can be combined into a single fragment which accepts 'ab' using an epsilon transition from the final state of F1 to the initial state of F2.
+The fragments are obtained by parsing the expression using the shunting yard algorithm, to construct an abstract syntax tree (AST) representing the literal parts of the expression (e.g. 'a', 'b'), and operators (e.g. '|').
+
+The conversion from a regular expression into a corresponding NFA can be donw as whoen in the following.
+
+```python
+from dsa.automata.regex import regex_to_NFA
+
+
+nfa = regex_to_NFA("a(a|b)*")
+
+assert nfa.accepts("a")
+assert nfa.accepts("abba")
+assert not nfa.accepts("")
+assert not nfa.accepts("baab")
+```
+
+
+## Context-free grammars & Pushdown Automata
 On the topic of formal languages, I will typically use Hopcroft, Motwani, and Ullman (HMU) as a reference:
 > John E. Hopcroft, Rajeev Motwani, Jeffrey D. Ullman - Introduction to automata theory, languages, and computation, 3rd edition (2006).
 
-I'll also refer to Michael Sipser (Sipser):
-> Sipser M. *Introduction to the Theory of Computation*, 3rd edition (2012)
 
 Some resources use terminology slightly different, so here's a brief overview of the terms used here, and some implementation details:
 
@@ -182,6 +295,7 @@ Some resources use terminology slightly different, so here's a brief overview of
 | Head / LHS | The nonterminal being expanded in a production. | `Nonterminal` | `S` in `S → aS \| S \| ε` |
 | RHS/body/production | One individual sententials produced by a nonterminal | `tuple[str \| Nonterminal, ...]` | `aS` in `S → aS \| S \| ε` |
 
+### Context-Free Grammars (CFGs) 
 Context free grammars are implemented in the `CFG` class, and can be instantiated with a set of prodution rules, and a starting symbol. Grammars expose helpers methods for producing a random sentence/string, and for using breadth-first generation to brute force every possible sentence up to a given length:
 
 ```python
@@ -229,7 +343,7 @@ assert grammar_is_cnf(G_cnf)
 
 ```
 
-### CYK algorithm and parse trees
+#### CYK algorithm and parse trees
 The CYK algorithm is a dynamic programming algorithm, can efficiently determine whether a sentence a context-free grammar in Chomsky Normal Form implemented in the `CYKParser` class.
 
 When a parser is initialized, it automatically converts is grammar to CNF and stores it.
@@ -316,3 +430,7 @@ S_1
     └── S
         └── 'a'
 ```
+
+### Pushdown Automata
+Just as regular languages are defined as being recognized by a finite state automaton, context-free languages are defined as being recognized a pushdown automaton.
+TODO: Get into pushdown automata.
