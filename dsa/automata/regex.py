@@ -190,6 +190,8 @@ class Parser[T]:
 
                 self.postfix.append(Atom(token))
             elif token == "(":
+                if can_concatenate:
+                    self._push_operator(Concat)
                 # Store opening parentheses on the stack
                 self.operators.append(None)
             elif token == ")":

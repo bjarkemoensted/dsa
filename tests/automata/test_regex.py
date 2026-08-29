@@ -2,7 +2,7 @@ from itertools import product
 import re
 import unittest
 
-from dsa.automata.regex import regex_to_NFA, Parser, BaseNode
+from dsa.automata.regex import regex_to_NFA, Parser, BaseNode, Concat
 
 
 patterns = (
@@ -33,7 +33,7 @@ letters = list("abcd")
 strings = [''.join(p) for k in range(MAX_STRING_LENGTH + 1) for p in product(letters, repeat=k)]
 
 
-class TestRegEx(unittest.TestCase):
+class TestRegex(unittest.TestCase):
     def test_parsing(self) -> None:
         """Check that valid regexes can be parsed to an AST"""
         for pattern in patterns:
@@ -57,3 +57,22 @@ class TestRegEx(unittest.TestCase):
                     is_match,
                     f"Compare pattern '{pattern}' against '{s}'. Expected match {is_match}, got {matched}"
                 )
+            #
+        #
+    
+    def test_parser_implicit_concatenation(self) -> None:
+        """Checks that the regex parser correctly inserts implicit concatenation where appropriate"""
+
+        cases = (
+            ("a", 0),
+            ("ab", 1),
+            ("ab*", 1),
+            ("a(ab)", 2)
+        )
+
+        for pattern, n_concats in cases:
+            with self.subTest(pattern=pattern):
+                parser = Parser(pattern)
+                parser.to_postfix()
+                n = sum(elem is Concat for elem in parser.postfix)
+                self.assertEqual(n, n_concats, f"Error parsing {pattern}: {n} != {n_concats}")
