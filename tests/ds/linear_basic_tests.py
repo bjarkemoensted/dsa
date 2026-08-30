@@ -1,17 +1,12 @@
+import unittest
 from abc import ABC, abstractmethod
 from collections import Counter
 from copy import deepcopy
-from typing import Generic, TypeVar
-import unittest
 
 from dsa.data_structures.linear.queue import BaseContainer
 
 
-T = TypeVar("T")
-L = TypeVar("L", bound=BaseContainer)
-
-
-class TestLinear(ABC, unittest.TestCase, Generic[T, L]):
+class TestLinear[T, L: BaseContainer](ABC, unittest.TestCase):
     """For running some standard tests, which are presumed to be similar across different
     types of linear structures like stacks, queues, etc."""
     
@@ -35,11 +30,9 @@ class TestLinear(ABC, unittest.TestCase, Generic[T, L]):
             if size_exp > self.data_bounded.maxsize:
                 with self.assertRaises(RuntimeError):
                     self.data_bounded.put(val)
-                #
             else:
                 self.data_bounded.put(val)
             self.assertEqual(self.data_bounded.size(), min(size_exp, self.data_bounded.maxsize))
-        #
     
     def test_deletion(self):
         for val in self.vals_:
@@ -80,8 +73,6 @@ class TestLinear(ABC, unittest.TestCase, Generic[T, L]):
             self.assertEqual(value_counts_expected, value_counts_retrieved)
             
             self.assertEqual(len(list_), q.size())
-        #
-    #
     
     @abstractmethod
     def create_data_structure(self, *args, **kwargs) -> L:
@@ -90,4 +81,3 @@ class TestLinear(ABC, unittest.TestCase, Generic[T, L]):
     def setUp(self):
         self.data = self.create_data_structure()
         self.data_bounded = self.create_data_structure(maxsize=self.bounded_maxsize)
-    #

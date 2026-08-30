@@ -1,27 +1,26 @@
+from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Iterator, Unpack
+from typing import Unpack
 
-
+from dsa.formal_languages import parse_trees
 from dsa.formal_languages.types import (
     InvalidGrammarError,
     Nonterminal,
-    productiontype,
-    sentencetype,
-    sententialtype,
-    symboltype,
+    ProductionType,
+    SentenceType,
+    SententialType,
+    SymbolType,
 )
 
-from dsa.formal_languages import parse_trees
 
-
-def _get_distinct_symbols[T](productions: productiontype, target_class: type[T]) -> tuple[T, ...]:
+def _get_distinct_symbols[T](productions: ProductionType, target_class: type[T]) -> tuple[T, ...]:
     """Takes a dict with production rules. Returns a tuple of the distinct symbols of the specified class."""
 
     seen: set[T] = set()
     keep: list[T] = []
 
-    candidates: list[symboltype] = list(productions.keys())
+    candidates: list[SymbolType] = list(productions.keys())
     candidates += [symbol for prods in productions.values() for body in prods for symbol in body]
 
     for elem in candidates:
@@ -39,10 +38,10 @@ class CFG:
 
     nonterminals: tuple[Nonterminal, ...]
     terminals: tuple[str, ...]
-    productions: productiontype
+    productions: ProductionType
     start_symbol: Nonterminal
 
-    def __init__(self, production_rules: productiontype, start_symbol: Nonterminal) -> None:
+    def __init__(self, production_rules: ProductionType, start_symbol: Nonterminal) -> None:
         self.productions = deepcopy(production_rules)
         self.start_symbol = start_symbol
 
@@ -50,25 +49,19 @@ class CFG:
         self.nonterminals = _get_distinct_symbols(self.productions, Nonterminal)
         check_grammar_is_valid(self)
 
-    def iter_rhs(self) -> Iterator[sententialtype]:
+    def iter_rhs(self) -> Iterator[SententialType]:
         """Iterate over each individual production RHS"""
         for prods in self.productions.values():
-            for p in prods:
-                yield p
-            #
-        #
+            yield from prods
     
-    def iter_produced_symbols(self) -> Iterator[symboltype]:
+    def iter_produced_symbols(self) -> Iterator[SymbolType]:
         """Iterate over each produced symbol, i.e. each individual symbol
         in each production, so if the grammar is
             S → a | ab | B
             B → c | ε
         this will iterate over ('a',), ('a', 'b'), (B,), ('c',), ()"""
         for p in self.iter_rhs():
-            for symbol in p:
-                yield symbol
-            #
-        #
+            yield from p
 
     @property
     def ascii(self) -> str:
@@ -90,7 +83,7 @@ class CFG:
         return res
 
     
-    def random_sentence(self, **kwargs: Unpack[parse_trees.GenKwargs]) -> sentencetype:
+    def random_sentence(self, **kwargs: Unpack[parse_trees.GenKwargs]) -> SentenceType:
         """Produces a random sentence"""
         res = parse_trees.produce_random_sentence(
             from_symbol=self.start_symbol,
@@ -103,7 +96,7 @@ class CFG:
     def random_string(self, **kwargs: Unpack[parse_trees.GenKwargs]) -> str:
         return "".join(self.random_sentence(**kwargs))
 
-    def brute_force_sentences(self, max_tokens: int) -> set[sentencetype]:
+    def brute_force_sentences(self, max_tokens: int) -> set[SentenceType]:
         brute = parse_trees.brute_force_sentences(
             from_symbol=self.start_symbol,
             productions=self.productions,
@@ -138,7 +131,6 @@ def check_grammar_is_valid(G: CFG) -> None:
         for p in prod:
             nonterms_prod |= {symbol for symbol in p if isinstance(symbol, Nonterminal)}
             terms_prod |= {symbol for symbol in p if isinstance(symbol, str)}
-        #
     if nonterms_prod != set(G.nonterminals):
         raise InvalidGrammarError("Nonterminals do not match production rules")
     if terms_prod != set(G.terminals):
@@ -148,4 +140,3 @@ def check_grammar_is_valid(G: CFG) -> None:
     _missing = sorted(set(G.nonterminals) - set(G.productions.keys()))
     if _missing:
         raise InvalidGrammarError(f"Some nonterminals have no productions: {', '.join(map(str, _missing))}")
-    #

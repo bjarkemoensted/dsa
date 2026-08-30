@@ -4,7 +4,7 @@ including a boolean indicating whether the sentences are members of the grammar"
 from dataclasses import dataclass
 
 from dsa.formal_languages.grammar import CFG
-from dsa.formal_languages.types import Nonterminal, productiontype, sentencetype
+from dsa.formal_languages.types import Nonterminal, ProductionType, SentenceType
 
 
 @dataclass
@@ -13,15 +13,14 @@ class Example:
     to make testing simpler."""
 
     name: str
-    productions: productiontype
+    productions: ProductionType
     start_symbol: Nonterminal
-    sentences: list[tuple[sentencetype, bool]]
+    sentences: list[tuple[SentenceType, bool]]
 
     @property
     def grammar(self) -> CFG:
         G = CFG(production_rules=self.productions, start_symbol=self.start_symbol)
         return G
-    #
 
 ### 'balanced' grammar producing a^n b^n,  e.g. "", "ab", "aabb", etc
 S = Nonterminal("S")
@@ -57,7 +56,7 @@ A = Nonterminal("A")
 B = Nonterminal("B")
 
 
-g_balanced_cnf: productiontype = {
+g_balanced_cnf: ProductionType = {
     S: [
         (A, X),
         (A, B),
@@ -118,7 +117,7 @@ example_palindrome = Example(
 
 S0 = Nonterminal("S0")
 
-g_palindrome_offset: productiontype = {
+g_palindrome_offset: ProductionType = {
     S0: [
         ("c", S)
     ],
@@ -187,7 +186,7 @@ example_arithmetic = Example(
 
 S3 = Nonterminal("S3")
 
-g_empty: productiontype = {
+g_empty: ProductionType = {
     S3: [()]
 }
 
@@ -207,7 +206,7 @@ example_empty = Example(
 
 ### Example of an ambiguous grammar with multiple ways of deriving strings
 
-g_ambiguous: productiontype = {
+g_ambiguous: ProductionType = {
     S: [
         (S, S),
         ("a",),

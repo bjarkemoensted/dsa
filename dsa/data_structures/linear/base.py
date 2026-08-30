@@ -1,18 +1,11 @@
 """Implements a base class for simple linear data structures (stacks, queues)"""
 
 from abc import ABC, abstractmethod
-from typing import (
-    Generic,
-    TypeVar
-)
-
-
-T = TypeVar('T')
 
 DEFAULT_ARR_SIZE = 8
 
 
-class BaseContainer(ABC, Generic[T]):
+class BaseContainer[T](ABC):
     """Base class for linear data structures. Has abstract methods for '_get' and '_put', which can be overridden
     to implement said operations. Aliases can then be defined for the terminology typically used for the specific data
     structure, i.e. push/pop for stacks, etc.
@@ -61,4 +54,3 @@ class BaseContainer(ABC, Generic[T]):
     @abstractmethod
     def to_list(self) -> list[T]:
         raise NotImplementedError
-    #

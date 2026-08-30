@@ -8,14 +8,12 @@ from .linear_basic_tests import TestLinear
 class BasicPriorityQueueTest(TestLinear):
     def create_data_structure(self, *args, **kwargs) -> PriorityQueue[int]:
         return PriorityQueue(*args, **kwargs)
-    #
 
 
 class _CustomObject:
     """A custom class which doesn't support comparison.
     This is to test that priority queues operate only on the priority itself, without
     relying on queued objects for tie breaking."""
-    pass
 
 
 class TestPriorityQueue(unittest.TestCase):
@@ -59,7 +57,6 @@ class TestPriorityQueue(unittest.TestCase):
         for i in range(1000):
             self.q.put(f"item{i}", priority=i)
         self.assertEqual(self.q.get(), "item0")  # smallest priority first
-    #
 
     def test_custom_objects(self):
         items = [_CustomObject() for _ in range(3)]

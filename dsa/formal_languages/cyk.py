@@ -3,13 +3,10 @@ from collections import defaultdict
 import numpy as np
 from numpy.typing import NDArray
 
-from dsa.formal_languages.types import (
-    Nonterminal,
-    sentencetype
-)
-from dsa.formal_languages.grammar import CFG
 from dsa.formal_languages.cnf_tools import chomsky_normal_form
+from dsa.formal_languages.grammar import CFG
 from dsa.formal_languages.parse_trees import ParseForest, ParseForestNode, ParseNode
+from dsa.formal_languages.types import Nonterminal, SentenceType
 
 
 class CYKParser:
@@ -44,27 +41,21 @@ class CYKParser:
                         # Register terminal-producing nonterminals
                         if isinstance(p[0], str):
                             self.unit_prods_inv[p[0]].append(Na_ind)
-                        #
                     case 2:
                         # Register binary productions
                         Nb, Nc = p
                         if isinstance(Nb, Nonterminal) and isinstance(Nc, Nonterminal):
                             Nb_ind, Nc_ind = map(self.nonterms_inv.__getitem__, (Nb, Nc))
                             self.binary_prods.append((Na_ind, Nb_ind, Nc_ind))
-                        #
                     case _:
                         raise RuntimeError(f"Production contains too many symbols: {p}")
-                    #
-                #
-            #
-        #
     
     @property
     def start_symbol_index(self) -> int:
         ind = self.nonterms_inv[self.G.start_symbol]
         return ind
 
-    def _parse(self, sentence: sentencetype) -> tuple[NDArray[np.bool_], NDArray[np.object_]]:
+    def _parse(self, sentence: SentenceType) -> tuple[NDArray[np.bool_], NDArray[np.object_]]:
         """Parse the input sentence.
         Returns a tuple P, back
         P: a 3D array of bools, with P[i, j, k] indicating whether a substring of length i, starting at j
@@ -93,7 +84,6 @@ class CYKParser:
             symbol: str = sentence[s]
             for v in self.unit_prods_inv[symbol]:
                 P[1, s, v] = True
-            #
         
         # DP step: break into substrings of varying lengths and shifts, noting which rules produce each
         for i in range(2, n):  # iterate all substring lengths (start at 2 bc we already did shorter strings)
@@ -109,10 +99,6 @@ class CYKParser:
                             # Register that a -> b c produces the left(b) and right(c) parts, splitting substring at p
                             tup = (p, b, c)
                             back[i, s, a].append(tup)
-                        #
-                    #
-                #
-            #
         
         return P, back
 
@@ -123,14 +109,13 @@ class CYKParser:
         res = producible.item()  # convert numpy bool to native type
         return res
 
-    def accepts(self, sentence: sentencetype) -> bool:
+    def accepts(self, sentence: SentenceType) -> bool:
         """Determines whether the sentence is producible by the grammar"""
         # Build the parse table
         P, _ = self._parse(sentence=sentence)
         return self._parse_table_accept(P)
-    #
 
-    def parse(self, sentence: sentencetype) -> ParseNode|None:
+    def parse(self, sentence: SentenceType) -> ParseNode|None:
         """Parse the sentence and return a parse tree (its root node) if the sentence is accepted.
         If not accepted, None is returned instead."""
         
@@ -140,7 +125,7 @@ class CYKParser:
         except StopIteration:
             return None
 
-    def make_parse_forest(self, sentence: sentencetype) -> ParseForest:
+    def make_parse_forest(self, sentence: SentenceType) -> ParseForest:
         """Encode every parse tree for the sentence in a parse forest."""
 
         P, back = self._parse(sentence=sentence)
@@ -162,7 +147,7 @@ class CYKParser:
 
 def build_parse_forest(
         G: CFG,
-        sentence: sentencetype,
+        sentence: SentenceType,
         back: NDArray[np.object_],
         A: int,
         length: int=-1,

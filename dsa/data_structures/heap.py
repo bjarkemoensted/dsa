@@ -4,58 +4,47 @@ and choice of a key function, are only passed once, when initializing a heap ins
 to pass one or the other when e.g. pushing or popping elements, which can lead to violations of the heap property."""
 
 import math
-from typing import (
-    Callable,
-    Generic,
-    Iterable,
-    overload,
-    TypeVar
-)
+from collections.abc import Callable, Iterable
 
 from dsa.data_structures.heap_operations import (
-    Comparable,
     MIN_HEAP_DEFAULT,
+    Comparable,
     _represent_binary_tree_as_ascii,
-    iterate_parent_child_pairs
+    iterate_parent_child_pairs,
 )
 
 
-T = TypeVar("T")
-C = TypeVar("C", bound=Comparable)
+class Comparison[T]:
+    """Callable for comparing objects, optionally using a key function"""
 
+    def __init__(self, min_: bool=True, key: Callable[[T], Comparable] | None = None) -> None:
+        """Make a comparison object.
+        min_: Whether to return a <= b (default).
+        key: Optional callable for controlling the order"""
 
-def _le(a: C, b: C) -> bool:
-    return a <= b
+        self.key = key
+        self.min_ = min_
 
-
-def _ge(a: C, b: C) -> bool:
-    return a >= b
-
-
-@overload
-def _make_comparison_func(min_: bool = True, key: None = None) -> Callable[[C, C], bool]: ...
-@overload
-def _make_comparison_func(min_: bool = True, key: Callable[[T], C] | None = ...) -> Callable[[T, T], bool]: ...
-
-def _make_comparison_func(min_: bool=True, key: Callable|None=None):
-    """Creates a function for comparing two elements. Defaults to a function which returns a <= b,
-    suitable as a comparison function for a min-heap.
-    min_ can be set to False to create a function returning a >= b instead, suitable for a max-heap.
-    key can be a callable which, if provided, is applied to the elements before the comparison is computed."""
-    
-    relation = _le if min_ else _ge
-    
-    def inner(a, b) -> bool:
-        if key is None:
-            return relation(a, b)
+    def get_vals(self, a: T, b: T) -> tuple[Comparable, Comparable]:
+        """Get comparable values from two inputs"""
+        if self.key is None:
+            # If no comparison key, ensure that the objects support comparison
+            assert isinstance(a, Comparable)
+            assert isinstance(b, Comparable)
+            return a, b
         else:
-            return relation(key(a), key(b))
-        #
-    
-    return inner
+            # Otherwise, run them through the key function
+            return self.key(a), self.key(b)
+
+    def __call__(self, a: T, b: T) -> bool:
+        val_a, val_b = self.get_vals(a, b)
+        if self.min_:
+            return val_a <= val_b
+        else:
+            return val_a >= val_b
 
 
-class Heap(Generic[T]):
+class Heap[T]:
     """Implements a Heap class. The class supports both min- and max-heaps, and accepts an arbitrary key function, maintaining
     the heap invariant on the result of applying the function to elements on the heap.
     In other words, a standard min-heap will maintain the invariant parent <= child for all parent-child pairs, but if a key function f
@@ -72,7 +61,7 @@ class Heap(Generic[T]):
         self.A = [v for v in values] if values is not None else []
         self.min_heap = min_heap
         self.key = key
-        self.comp = _make_comparison_func(min_=min_heap, key=key)
+        self.comp: Comparison[T] = Comparison(min_=min_heap, key=key)
         self._heapify()
     
     def _satisfies_heap_invariant(self) -> bool:
@@ -113,8 +102,6 @@ class Heap(Generic[T]):
                 # Otherwise, swap with the best child, and continue from there
                 self.A[i], self.A[best] = self.A[best], self.A[i]
                 i = best
-            #
-        #
     
     def _restore_up(self, i: int) -> None:
         """Assumes that all nodes above i satisfy the heap property.
@@ -132,14 +119,11 @@ class Heap(Generic[T]):
             else:
                 self.A[i], self.A[parent] = self.A[parent], self.A[i]
                 i = parent
-            #
-        #
     
     def _heapify(self) -> None:
         """Turn the values into a heap"""
         for i in reversed(range(len(self.A) // 2)):
             self._restore_down(i=i)
-        #
     
     def push(self, item: T) -> None:
         """Pushes an element onto the heap"""

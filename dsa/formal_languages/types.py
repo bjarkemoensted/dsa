@@ -1,9 +1,8 @@
-from typing import NamedTuple, TypeAlias, TypeGuard
+from typing import NamedTuple, TypeGuard
 
 
 class InvalidGrammarError(Exception):
     """Exception for when detecting rule violations when defining a grammar"""
-    pass
 
 
 class Nonterminal(NamedTuple):
@@ -22,20 +21,19 @@ class Nonterminal(NamedTuple):
 
     def __repr__(self):
         return self.name
-    #
 
 # Types for sentences and sentential forms
-symboltype: TypeAlias = str|Nonterminal
-sententialtype: TypeAlias = tuple[symboltype, ...]
-sentencetype: TypeAlias = tuple[str, ...]
+type SymbolType = str|Nonterminal
+type SententialType = tuple[SymbolType, ...]
+type SentenceType = tuple[str, ...]
 
 # Alias for production rules (mapping each nonterminal to a list of productions)
-productiontype: TypeAlias = dict[Nonterminal, list[sententialtype]]
+type ProductionType = dict[Nonterminal, list[SententialType]]
 
 
-def is_sentential(obj) -> TypeGuard[sententialtype]:
+def is_sentential(obj) -> TypeGuard[SententialType]:
     return isinstance(obj, tuple) and all(isinstance(elem, (str, Nonterminal)) for elem in obj)
 
 
-def is_sentence(obj) -> TypeGuard[sentencetype]:
+def is_sentence(obj) -> TypeGuard[SentenceType]:
     return isinstance(obj, tuple) and all(isinstance(elem, str) for elem in obj)

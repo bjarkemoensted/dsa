@@ -1,14 +1,11 @@
 """Implements simple linear data structures (stacks, queues)"""
 
-from typing import (
-    cast,
-    Generic
-)
+from typing import cast
 
-from dsa.data_structures.linear.base import DEFAULT_ARR_SIZE, BaseContainer, T
+from dsa.data_structures.linear.base import DEFAULT_ARR_SIZE, BaseContainer
 
 
-class Queue(BaseContainer, Generic[T]):
+class Queue[T](BaseContainer):
     """Queue data structure. Implementation follows CLRS section 10.1.
     The invariants here are the pointers .tail and .head which refer to
     the next free slot, and the most recently inserted element, respectively (except when the
@@ -31,7 +28,6 @@ class Queue(BaseContainer, Generic[T]):
         self.arr = [None for _ in range(2*self.size())]
         for i, val in enumerate(vals):
             self.arr[i] = val
-        #
     
     def _put(self, item):
         at_capacity = self.size() == len(self.arr) - 1
@@ -51,11 +47,9 @@ class Queue(BaseContainer, Generic[T]):
         inds = ((self.head + i) % len(self.arr) for i in range(self.size()))
         res = [self.arr[i] for i in inds]
         return cast(list[T], res)
-    #
 
     def enqueue(self, item: T):
         self.put(item)
     
     def dequeue(self):
         return self.get()
-    #

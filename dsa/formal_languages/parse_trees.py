@@ -1,23 +1,24 @@
 from __future__ import annotations
-from collections import deque
-from dataclasses import dataclass, field
+
 import random
-from typing import Iterable, Iterator, Literal, TypeAlias, TypedDict, Unpack
+from collections import deque
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass, field
+from typing import Literal, TypedDict, Unpack
 
 import anytree  # type: ignore
 
 from dsa.formal_languages.types import (
-    is_sentence,
     Nonterminal,
-    productiontype,
-    sentencetype,
-    sententialtype,
-    symboltype
+    ProductionType,
+    SentenceType,
+    SententialType,
+    SymbolType,
+    is_sentence,
 )
 
-
 # To pass parsing direction type
-directiontype: TypeAlias = Literal["leftmost", "rightmost"]
+type DirectionType = Literal["leftmost", "rightmost"]
 
 
 class GenKwargs(TypedDict, total=False):
@@ -44,7 +45,6 @@ class ParseNode(anytree.AnyNode):
         self.parent = parent
         if children:
             self.children = tuple(children)
-        #
 
     def ascii_tree(self) -> str:
         """Represents the tree as text"""
@@ -56,15 +56,15 @@ class ParseNode(anytree.AnyNode):
         s = "".join(self.iterate_sentence())
         return s
 
-    def sentence(self) -> sentencetype:
+    def sentence(self) -> SentenceType:
         return tuple(self.iterate_sentence())
     
-    def derivation(self, direction: directiontype|None=None) -> str:
+    def derivation(self, direction: DirectionType|None=None) -> str:
         steps = map(str, self.iterate_derivation(direction=direction))
         res = " => ".join(steps)
         return res
 
-    def iterate_derivation(self, direction: directiontype|None=None) -> Iterator[sententialtype]:
+    def iterate_derivation(self, direction: DirectionType|None=None) -> Iterator[SententialType]:
         """Iterate over each step in the derivation represented by the parse tree,
         starting from this node.
         Each step yields the sentential form with one additional nonterminal expanded.
@@ -76,7 +76,7 @@ class ParseNode(anytree.AnyNode):
             direction = "leftmost"
 
         # Maintain a list of expanded symbols, and the remaining symbols
-        expanded: list[symboltype] = []
+        expanded: list[SymbolType] = []
         remaining: deque[ParseNode] = deque([self])
         yield tuple(node.symbol for node in remaining)
 
@@ -103,7 +103,6 @@ class ParseNode(anytree.AnyNode):
             
             sentential = tuple(intermediate)
             yield sentential
-        #
 
     def iterate_sentence(self) -> Iterator[str]:
         """Iterates over the sentence produced from this node."""
@@ -119,7 +118,6 @@ class ParseNode(anytree.AnyNode):
             yield self.symbol
         else:
             raise TypeError
-        #
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, ParseNode):
@@ -142,7 +140,7 @@ class ParseNode(anytree.AnyNode):
 
 def grow_random_parse_tree(
         from_symbol: Nonterminal|str,
-        productions: productiontype,
+        productions: ProductionType,
         parent: ParseNode|None=None,
         depth: int=0,
         random_state: random.Random|int|None=None,
@@ -179,7 +177,6 @@ def grow_random_parse_tree(
         all_terms = [all(isinstance(elem, Nonterminal) for elem in opt) for opt in options]
         if any(all_terms):
             weights = [int(at) for at in all_terms]
-        #
 
     # Use one of the productions for the current nonterminal at random        
     choice = random_state.choices(options, weights=weights, k=1)[0]
@@ -200,10 +197,10 @@ def grow_random_parse_tree(
 
 def produce_random_sentence(
         from_symbol: Nonterminal,
-        productions: productiontype,
+        productions: ProductionType,
         depth: int=0,
         **kwargs: Unpack[GenKwargs]
-    ) -> sentencetype:
+    ) -> SentenceType:
     """Produce a random sentence using the specified grammar.
     See grow_random_parse_tree docstring for details."""
 
@@ -218,10 +215,10 @@ def produce_random_sentence(
     return res
 
 
-def determine_length_bounds(productions: productiontype) -> dict[Nonterminal, int]:
+def determine_length_bounds(productions: ProductionType) -> dict[Nonterminal, int]:
     """Takes production rules and returns a dict mapping each nonterminal to a lower bound
     on the number of terminals in sentences it may produce"""
-    min_lengths = {nt: float("inf") for nt in productions.keys()}
+    min_lengths = {nt: float("inf") for nt in productions}
     changed = True
     while changed:
         changed = False
@@ -231,9 +228,6 @@ def determine_length_bounds(productions: productiontype) -> dict[Nonterminal, in
             if new_min != min_lengths[nt]:
                 min_lengths[nt] = new_min
                 changed = True
-            #
-        #
-    #   
 
     res = {nt: int(bound) for nt, bound in min_lengths.items()}
     return res
@@ -241,10 +235,10 @@ def determine_length_bounds(productions: productiontype) -> dict[Nonterminal, in
 
 def brute_force_sentences(
         from_symbol: Nonterminal,
-        productions: productiontype,
+        productions: ProductionType,
         max_tokens: int,
         only_distinct=True
-    ) -> Iterator[sentencetype]:
+    ) -> Iterator[SentenceType]:
     """Computes all sentences with length no greater than the specified
     number of tokens.
     from_symbol (Nonterminal): The symbol from which to start producing
@@ -253,9 +247,9 @@ def brute_force_sentences(
     only_distinct: If true, only returns each distinct sentence once, with no double counting"""
     
     lower_bounds = determine_length_bounds(productions)
-    already_produced: set[sentencetype] = set()
-    queue: list[sententialtype] = [(from_symbol,)]
-    processed: set[sententialtype] = set(queue)
+    already_produced: set[SentenceType] = set()
+    queue: list[SententialType] = [(from_symbol,)]
+    processed: set[SententialType] = set(queue)
     
     while queue:
         
@@ -274,7 +268,7 @@ def brute_force_sentences(
             continue
         
         # Select a random nonterminal
-        ind_nts = list((i, s) for i, s in enumerate(current) if isinstance(s, Nonterminal))
+        ind_nts = [(i, s) for i, s in enumerate(current) if isinstance(s, Nonterminal)]
         replace_ind, symbol = random.choice(ind_nts)
 
         # Replace the nonterminal with all possible productions
@@ -290,8 +284,6 @@ def brute_force_sentences(
                 continue
             processed.add(new_sentential)
             queue.append(new_sentential)
-        #
-    #
 
 
 @dataclass
@@ -333,7 +325,7 @@ class ParseForestNode:
     start: int
     length: int
     nonterminals: tuple[Nonterminal, ...]
-    sentence: sentencetype
+    sentence: SentenceType
     alternatives: list[tuple[ParseForestNode, ParseForestNode]] = field(default_factory=list)
 
     @property
@@ -367,11 +359,6 @@ class ParseForestNode:
                     for righttree in right.generate_parse_trees(parent=None):
                         node = ParseNode(nonterm, children=(lefttree, righttree))
                         yield node
-                    #
-                #
-            #
-        #
-    #
 
 
 @dataclass
@@ -388,4 +375,3 @@ class ParseForest:
             return iter(())
         
         return iter(self.root.generate_parse_trees())
-    #

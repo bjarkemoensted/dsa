@@ -1,16 +1,12 @@
 from __future__ import annotations
-from typing import (
-    cast,
-    Generic,
-    Iterable,
-    Iterator,
-    Self
-)
 
-from dsa.data_structures.linear.queue import BaseContainer, T
+from collections.abc import Iterable, Iterator
+from typing import Self, cast
+
+from dsa.data_structures.linear.queue import BaseContainer
 
 
-class Node(Generic[T]):
+class Node[T]:
     """A node in a linked list.
     The value stored in the node is the key attribute.
     prev and next attributes point to the predessesor and successor nodes, respectively."""
@@ -20,8 +16,8 @@ class Node(Generic[T]):
         prev and next initially point to None - successor and predesssesor nodes
         must be set after initialization"""
         self.key: T|None = key
-        self.prev: Node|None = None
-        self.next: Node|None = None
+        self.prev: Node[T]|None = None
+        self.next: Node[T]|None = None
 
     @classmethod
     def make_nil(cls) -> Self:
@@ -36,7 +32,6 @@ class Node(Generic[T]):
     
     def __str__(self):
         return repr(self)
-    #
 
     def _iterate_direction(self, forward=True) -> Iterator[Node]:
         """Iterates over this node and all successors (if forward is True) or predessesors.
@@ -49,8 +44,6 @@ class Node(Generic[T]):
             if not next_node or next_node is self:
                 break
             node = next_node
-        #
-    #
 
     def forward(self) -> Iterator[Node]:
         """Iterates over this node and all successors"""
@@ -59,10 +52,9 @@ class Node(Generic[T]):
     def backwards(self) -> Iterator[Node]:
         """Iterates over this node and all predessesor"""
         yield from self._iterate_direction(forward=False)
-    #
 
 
-class LinkedList(BaseContainer, Generic[T]):
+class LinkedList[T](BaseContainer):
     """A linked list, where elements are stored with references to the next and previous elements.
     Uses a sentinel node to represent the beginning and end of the list.
     As the number of elements can't be efficiently computed without traversing the entire list,
@@ -143,10 +135,8 @@ class LinkedList(BaseContainer, Generic[T]):
         """Iterate over nodes in the list"""
         
         nodes = self.nil.forward()
-        node = next(nodes)
-        for node in nodes:
-            yield node
-        #
+        _ = next(nodes)
+        yield from nodes
     
     def search(self, key: T) -> Node[T]:
         """Return the first node containing the specified key.
@@ -154,7 +144,6 @@ class LinkedList(BaseContainer, Generic[T]):
         for node in self.iterate_nodes():
             if node.key == key:
                 return node
-            #
         
         raise ValueError(f"{self.__class__.__name__} does not contain value {key}.")
     
@@ -178,7 +167,6 @@ class LinkedList(BaseContainer, Generic[T]):
         """Extend the tail (right) end of the list"""
         for value in values:
             self.append(value)
-        #
     
     def extendleft(self, values: Iterable[T]) -> None:
         """Extend the head (left) end of the list"""
@@ -199,4 +187,3 @@ class LinkedList(BaseContainer, Generic[T]):
         """Removes the first occurrence of a value fro mthe list"""
         node = self.search(item)
         self.detach_node(node)
-    #

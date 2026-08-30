@@ -1,9 +1,8 @@
-from itertools import product
 import re
 import unittest
+from itertools import product
 
 from dsa.automata import regex
-
 
 patterns = (
     'a',
@@ -57,8 +56,6 @@ class TestRegex(unittest.TestCase):
                     is_match,
                     f"Check if pattern '{pattern}' matches string '{s}'."
                 )
-            #
-        #
     
     def test_parser_implicit_concatenation(self) -> None:
         """Checks that the regex parser correctly inserts implicit concatenation where appropriate"""

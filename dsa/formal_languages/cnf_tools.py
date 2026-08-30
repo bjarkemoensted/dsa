@@ -1,16 +1,10 @@
 from collections import defaultdict
+from collections.abc import Callable, Iterable, Iterator
 from copy import deepcopy
 from itertools import combinations
-from typing import Callable, Iterable, Iterator
 
-from dsa.formal_languages.grammar import (
-    CFG
-)
-from dsa.formal_languages.types import (
-    Nonterminal,
-    productiontype,
-    sententialtype
-)
+from dsa.formal_languages.grammar import CFG
+from dsa.formal_languages.types import Nonterminal, ProductionType, SententialType
 
 
 def get_useless_symbols(G: CFG) -> list[Nonterminal]:
@@ -32,9 +26,6 @@ def get_useless_symbols(G: CFG) -> list[Nonterminal]:
                 for symbol in prod:
                     if isinstance(symbol, Nonterminal):
                         front.add(symbol)
-                    #
-                #
-            #
         front -= reachable
 
     # Determine which of the nonterms can produce strings
@@ -51,8 +42,6 @@ def get_useless_symbols(G: CFG) -> list[Nonterminal]:
                 if stringmaker:
                     producing.add(head)
                     producing |= {symbol for symbol in rhs if isinstance(symbol, Nonterminal)}
-                #
-            #
         updated = len(producing) != n_determined
 
     useful = reachable & producing
@@ -94,8 +83,6 @@ def grammar_is_cnf(G: CFG, allow_empty_string_from_start=True) -> bool:
             cnf_rules_sat = split or string_ or (empty and empty_ok)
             if not cnf_rules_sat:
                 return False
-            #
-        #
     
     return True
 
@@ -112,14 +99,12 @@ class SymbolGenerator:
 
         self.separator = separator
         # Determine the maximum suffix for each base name
-        self.counts: dict[str, int] = dict()
+        self.counts: dict[str, int] = {}
         for nt in nonterms:
             base, n = self.split(nt.name)
             n = 0 if n is None else n
             if n > self.counts.get(base, float("-inf")):
                 self.counts[base] = n
-            #
-        #
 
     def split(self, s: str) -> tuple[str, int]:
         """Attempts to split a name into a base name and integer suffix, e.g.
@@ -136,8 +121,6 @@ class SymbolGenerator:
             return prefix, int(suffix)
         except ValueError:
             return s, 0
-        #
-    #
 
     def __call__(self, symbol: str|Nonterminal) -> Nonterminal:
         """Make a new nonterminal with a yet-unused name,
@@ -158,10 +141,9 @@ class SymbolGenerator:
         res = Nonterminal(new_name)
 
         return res
-    #
 
 
-def _determine_nullable(production_rules: productiontype) -> set[Nonterminal]:
+def _determine_nullable(production_rules: ProductionType) -> set[Nonterminal]:
     """Determine the nonterminals which may produce an empty strings.
     Defined as: A is nullable if it has a production A -> X_1 ... X_n where all X_i are either
         the empty production (), or
@@ -181,12 +163,10 @@ def _determine_nullable(production_rules: productiontype) -> set[Nonterminal]:
             if any(produces_null):
                 nullable.add(nt)
                 changed = True
-            #
-        #
     return nullable
 
 
-def _inline_nullable_powerset(rule: list[sententialtype], nullable: set[Nonterminal]) -> Iterator[sententialtype]:
+def _inline_nullable_powerset(rule: list[SententialType], nullable: set[Nonterminal]) -> Iterator[SententialType]:
     """Given a production rule (list of RHS of a production), generates the additional productions which must be
     introduced to inline the nullable productions.
     For example, if the grammar is
@@ -215,9 +195,6 @@ def _inline_nullable_powerset(rule: list[sententialtype], nullable: set[Nontermi
                     continue
                 seen.add(inlined)
                 yield inlined
-            #
-        #
-    #
 
 
 class CNFConverter:
@@ -229,7 +206,7 @@ class CNFConverter:
     to make a class for holding the intermediate results and executing each step, to
     simplify the process of testing each step"""
     
-    def __init__(self, start_symbol: Nonterminal, productions: productiontype) -> None:
+    def __init__(self, start_symbol: Nonterminal, productions: ProductionType) -> None:
         self.steps: tuple[Callable[[], None], ...] = (
             self._start,
             self._term,
@@ -245,7 +222,7 @@ class CNFConverter:
         nonterms = {*self.production_rules.keys(), *self._produced_nts()}
         self.make_new_symbol = SymbolGenerator(nonterms=nonterms)
 
-    def iter_prods(self) -> Iterator[tuple[Nonterminal, int, sententialtype]]:
+    def iter_prods(self) -> Iterator[tuple[Nonterminal, int, SententialType]]:
         """Helper for iterating over every individual production rule, and the rule index.
         To facilitate modification during iteration, we first extract the nonterminals and indices
         to iterate over, then do the iteration. Indices are reversed such that when using this
@@ -258,8 +235,6 @@ class CNFConverter:
             for i in inds:
                 p = self.production_rules[nt][i]
                 yield nt, i, p
-            #
-        #
 
     def _produced_nts(self) -> Iterator[Nonterminal]:
         """Iterate over all each nonterminal in the production RHS"""
@@ -267,9 +242,6 @@ class CNFConverter:
             for elem in p:
                 if isinstance(elem, Nonterminal):
                     yield elem
-                #
-            #
-        #
 
     def _start(self) -> None:
         """START step - ensure no start symbols occur in any RHS productions.
@@ -290,15 +262,13 @@ class CNFConverter:
     def _term(self) -> None:
         """TERM step - ensure no rules have nonsolitary terminals"""
         # Make a mapping from strings to nonterminals that produce only that string
-        solitary_prods = dict()
+        solitary_prods = {}
         for nt, prods in self.production_rules.items():
             if len(prods) != 1:
                 continue  # only look for productions of single strings
             for p in prods:
                 if len(p) == 1 and all(isinstance(w, str) for w in p):
                     solitary_prods[p[0]] = nt  # register the nonterminal which produces this string
-                #
-            #
         
         # Now look for nonsolitary strings
         for nt, i, p in self.iter_prods():
@@ -324,7 +294,6 @@ class CNFConverter:
                 # Replace the string with the new nonterm, and add a new production rule like N_a -> 'a'
                 p_update[ind] = solitary_prods[s]
             self.production_rules[nt][i] = tuple(p_update)
-        #   
 
     def _bin(self) -> None:
         """BIN step - ensure no right-hand-sides have more than 2 non-terminals.
@@ -364,8 +333,6 @@ class CNFConverter:
             # Add the newly introduced rules to the grammar's production rules
             for left, center, right in new_rules:
                 self.production_rules[left] = self.production_rules.get(left, []) + [(center, right)]
-            #
-        #
 
     def _del(self) -> None:
         """DEL step - ensure no nonterminals apart from the start symbol produces the empty string"""
@@ -381,8 +348,6 @@ class CNFConverter:
         for nt, i, p in self.iter_prods():
             if nt != self.start_symbol and p == ():
                 del self.production_rules[nt][i]
-            #
-        #
 
     def _unit(self) -> None:
         """UNIT step - ensure no nonterminals produce a single nonterminal.
@@ -396,17 +361,17 @@ class CNFConverter:
         # Indices we must remove for each nonterminal. These point to the 'bad' productions
         inds_remove: dict[Nonterminal, set[int]] = defaultdict(set)
         # established substitutions that can be used in place of nonterminals, e.g. {B: [(C,), ('a',), ('b',)]}
-        substitution_cache: dict[Nonterminal, set[sententialtype]] = dict()
+        substitution_cache: dict[Nonterminal, set[SententialType]] = {}
         # Rules to add to the grammar to compensate for removing the bad ones
-        rules_to_add: dict[Nonterminal, set[sententialtype]] = defaultdict(set)
+        rules_to_add: dict[Nonterminal, set[SententialType]] = defaultdict(set)
         
-        def resolve_nonterm(B: Nonterminal) -> set[sententialtype]:
+        def resolve_nonterm(B: Nonterminal) -> set[SententialType]:
             """Takes a 'bad' nonterminal (for example B in the case of A -> B).
             Returns a list of (not 'bad') sentential forms producible by B (e.g. [(C,), ('a',), ('b',)]).
             Recurses on encountering additional 'bad' nonterminals."""
             
             nonlocal substitution_cache
-            res: set[sententialtype] = set()
+            res: set[SententialType] = set()
             try:
                 res = substitution_cache[B]
             except KeyError:
@@ -415,8 +380,6 @@ class CNFConverter:
                         res |= resolve_nonterm(p[0])
                     else:
                         res.add(p)
-                    #
-                #
 
             return res
 
@@ -427,20 +390,16 @@ class CNFConverter:
                 inds_remove[nt].add(ind)
                 # Determine what we need to substitute for the production  
                 rules_to_add[nt] |= resolve_nonterm(p[0])
-            #
         
         # Remove the bad productions and add the good substitutions instead
         for nt, inds in inds_remove.items():
             keep_prods = [p for i, p in enumerate(self.production_rules[nt]) if i not in inds]
             add_prods = sorted(rules_to_add[nt] - set(keep_prods), key=repr)
             self.production_rules[nt] = keep_prods + add_prods
-        #
         
     def convert(self) -> None:
         for func in self.steps:
             func()
-        #
-    #
 
 
 def chomsky_normal_form(G: CFG) -> CFG:

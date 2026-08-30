@@ -1,18 +1,14 @@
-from typing import (
-    cast,
-    Generic,
-    Optional
-)
+from typing import cast
 
-from dsa.data_structures.linear.queue import DEFAULT_ARR_SIZE, BaseContainer, T
+from dsa.data_structures.linear.queue import DEFAULT_ARR_SIZE, BaseContainer
 
 
-class Stack(BaseContainer, Generic[T]):
+class Stack[T](BaseContainer):
     """Stack data structure. Implementation follows CLRS section 10.1.
     An invariant here is a .top pointer which points to the most recently inserted element.
     This implementation uses zero indexing, so the top pointer is initialized at -1 rather than 0."""
 
-    arr: list[Optional[T]]
+    arr: list[T | None]
 
     def __init__(self, maxsize: int=-1):
         super().__init__(maxsize=maxsize)
@@ -53,4 +49,3 @@ class Stack(BaseContainer, Generic[T]):
     def to_list(self) -> list[T]:
         res = [self.arr[i] for i in range(self.top + 1)]
         return cast(list[T], res)
-    #

@@ -8,7 +8,6 @@ from .linear_basic_tests import TestLinear
 class BasicStackTest(TestLinear):    
     def create_data_structure(self, *args, **kwargs) -> Stack[int]:
         return Stack(*args, **kwargs)
-    #
 
 
 class StackTest(unittest.TestCase):    
@@ -31,7 +30,6 @@ class StackTest(unittest.TestCase):
 
     def test_underflow(self):
         self.assertRaises(RuntimeError, self.stack.pop)
-    #
     
     def test_overflow(self):
         stack = Stack(maxsize=0)
@@ -53,4 +51,3 @@ class StackTest(unittest.TestCase):
         stack.push(42)
         self.assertTrue(stack.full())
         self.assertFalse(stack.empty())
-    #

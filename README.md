@@ -302,13 +302,13 @@ Context free grammars are implemented in the `CFG` class, and can be instantiate
 from dsa.formal_languages import (
     CFG,
     Nonterminal,
-    productiontype  # alias for dict[Nonterminal, list[sententialtype]]
+    ProductionType  # alias for dict[Nonterminal, list[sententialtype]]
 )
 
 
 S = Nonterminal("S")
 
-production_rules: productiontype = {
+production_rules: ProductionType = {
     S: [("a",), ("a", S), ("a", "b"), ()]
 }
 
@@ -356,13 +356,13 @@ from dsa.formal_languages import (
     CFG,
     CYKParser,
     Nonterminal,
-    productiontype
+    ProductionType
 )
 
 
 # Create an ambiguous grammar
 S = Nonterminal("S")
-g: productiontype = {
+g: ProductionType = {
     S: [
         (S, S),
         ("a",),

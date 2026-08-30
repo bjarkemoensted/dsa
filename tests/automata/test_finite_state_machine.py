@@ -1,14 +1,8 @@
-from itertools import product
-from typing import Sequence
 import unittest
+from collections.abc import Sequence
+from itertools import product
 
-from dsa.automata.finite_state_machine import (
-    AutomatonBase,
-    EPSILON,
-    DFA,
-    NFA
-)
-
+from dsa.automata.finite_state_machine import DFA, EPSILON, NFA, AutomatonBase
 
 dfa_kwargs_1 = {
     "states": {"q1", "q2"},
@@ -46,7 +40,6 @@ class TestDFA(unittest.TestCase):
         for machine, string, valid in cases:
             accepted = machine.accepts(string)
             self.assertIs(accepted, valid)
-        #
     
     def test_invalid_machine_raises_error(self) -> None:
         invalid_kwargs = [
@@ -57,8 +50,6 @@ class TestDFA(unittest.TestCase):
         for d in invalid_kwargs:
             with self.assertRaises(RuntimeError):
                 DFA(**(dfa_kwargs_1 | d))  # type: ignore
-            #
-        #
     
     def test_nfa_acceptance(self) -> None:
         """Check that an NFA whivc gives sets of single states accepts the same
@@ -72,8 +63,6 @@ class TestDFA(unittest.TestCase):
         for machine, string, valid in cases:
             accepted = machine.accepts(string)
             self.assertIs(accepted, valid)
-        #
-    #
 
 
 # NFA N1 (example 1.38 in Sipser) - accepts strings w. 101 or 11 as a substring
@@ -153,4 +142,3 @@ class TestNFA(unittest.TestCase):
             print(string)
             accepted = nfa.accepts(string)
             self.assertIs(accepted, solution, f"Error for {string}")
-    #

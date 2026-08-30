@@ -8,7 +8,6 @@ from .linear_basic_tests import TestLinear
 class BasicQueueTest(TestLinear):
     def create_data_structure(self, *args, **kwargs) -> Queue[int]:
         return Queue(*args, **kwargs)
-    #
 
 
 class QueueTest(unittest.TestCase):
@@ -48,4 +47,3 @@ class QueueTest(unittest.TestCase):
         self.assertEqual(self.unbounded_q.size(), 5)
         self.unbounded_q.dequeue()
         self.assertEqual(self.unbounded_q.size(), 4)
-    #

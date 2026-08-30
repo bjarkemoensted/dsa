@@ -8,20 +8,21 @@ from ..utils import make_integers
 
 class TestHeap(unittest.TestCase):
     min_heap = True
+    vals_heap: list[int]
     
-    def get_vals(self):
+    def get_vals(self) -> list[int]:
         return make_integers(n=100)
     
-    def setUp(self):
+    def setUp(self) -> None:
         self.vals = self.get_vals()
-        self.vals_heap = [v for v in self.vals]
+        self.vals_heap: list[int] = [v for v in self.vals]
         heap_operations.heapify(self.vals_heap, min_heap=self.min_heap)
     
     def heap_property_satisfied(self, vals) -> bool:
         res = heap_operations._satisfies_heap_property(vals, min_heap=self.min_heap)
         return res
     
-    def test_satisfy_heap_prop_function(self):
+    def test_satisfy_heap_prop_function(self) -> None:
         """Check the function for determining whether the heap property is satisfied"""
         
         # Check positive case
@@ -38,34 +39,30 @@ class TestHeap(unittest.TestCase):
             vals[i1], vals[i2] = vals[i2], vals[i1]
             still_heap = self.heap_property_satisfied(vals)
             self.assertFalse(still_heap)
-        #
     
-    def test_heapify(self):
+    def test_heapify(self) -> None:
         heap_operations.heapify(self.vals, min_heap=self.min_heap)
         satisfies_heap_prop = self.heap_property_satisfied(self.vals)
         self.assertTrue(satisfies_heap_prop)
 
-    def test_insert(self):
+    def test_insert(self) -> None:
         heap_operations.heapify(self.vals, min_heap=self.min_heap)
         new_values = self.get_vals()
         for val in new_values:
             self.assertTrue(self.heap_property_satisfied(self.vals))
             heap_operations.heappush(self.vals, val, min_heap=self.min_heap)
-        #
 
-    def test_remove(self):
+    def test_remove(self) -> None:
         for _ in range(len(self.vals_heap)):
             # Check that heap proprty persist after popping an element
             heap_operations.heappop(self.vals_heap, min_heap=self.min_heap)
             self.assertTrue(self.heap_property_satisfied(self.vals_heap))
-        #
     
-    def test_large_heap(self):
+    def test_large_heap(self) -> None:
         vals = make_integers(n=100_000)
         heap_operations.heapify(vals, min_heap=self.min_heap)
         good = self.heap_property_satisfied(vals)
         self.assertTrue(good)
-    #
 
 
 class TestMaxHeap(TestHeap):
@@ -75,8 +72,6 @@ class TestMaxHeap(TestHeap):
         """Double check that the ordering between parent and child nodes is parent >= child"""
         for ip, ic in heap_operations.iterate_parent_child_pairs(size=len(self.vals_heap)):
             self.assertGreaterEqual(self.vals_heap[ip], self.vals_heap[ic])
-        #
-    #
 
 
 class TestSorting(unittest.TestCase):
@@ -94,8 +89,6 @@ class TestSorting(unittest.TestCase):
                 a <= b,
                 f"Subsequent elements out of order at index {i} (values {a}, {b})"
             )
-        #
-    #
 
 
 class TestHeapClass(unittest.TestCase):
@@ -113,17 +106,14 @@ class TestHeapClass(unittest.TestCase):
             self.assertTrue(self.heap._satisfies_heap_invariant())
             n_items += 1
             self.assertEqual(n_items, len(self.heap))
-        #
     
     def test_pop(self):
         for _ in range(len(self.heap)):
             val = self.heap.pop()
             self.assertTrue(all(self.heap.comp(val, other) for other in self.heap.A))
             self.assertTrue(self.heap._satisfies_heap_invariant())
-        #
         
         self.assertRaises(IndexError, self.heap.pop)
-    #
     
     def test_height(self):
         for n in range(100):
@@ -136,7 +126,6 @@ class TestHeapClass(unittest.TestCase):
                 
             heap = Heap(vals)
             self.assertEqual(depth_brute, heap.height)
-        #
     
     def test_ascii_representation(self):
         n_vals = [0, 1, 3, 4, 15, 31, 32, 1023]
@@ -151,6 +140,3 @@ class TestHeapClass(unittest.TestCase):
                 # For non-empty heaps, check that all values on the heap appear in the tree
                 recovered = [int(elem) for line in ascii.splitlines() for elem in line.strip().split()]
                 self.assertEqual(sorted(recovered), sorted(values))
-            #
-        #
-    #

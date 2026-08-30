@@ -8,7 +8,6 @@ from .linear_basic_tests import TestLinear
 class BasicPriorityQueueTest(TestLinear):
     def create_data_structure(self, *args, **kwargs) -> LinkedList[int]:
         return LinkedList(*args, **kwargs)
-    #
 
 
 class TestLinkedList(unittest.TestCase):
@@ -113,7 +112,6 @@ class TestLinkedList(unittest.TestCase):
         for v in values:
             with self.assertRaises(ValueError):
                 _ = self.list.search(v)
-            #
 
         self.assertIs(self.list.head, self.list.nil)
         self.assertTrue(self.list.empty())
