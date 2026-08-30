@@ -139,6 +139,5 @@ class TestNFA(unittest.TestCase):
         )
 
         for string, solution in cases:
-            print(string)
             accepted = nfa.accepts(string)
             self.assertIs(accepted, solution, f"Error for {string}")

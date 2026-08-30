@@ -1,138 +1,17 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from functools import singledispatchmethod
 from itertools import count
-from typing import Any, ClassVar, Literal, Self, TypeIs, get_args
+from typing import Literal, Self, TypeIs, get_args
 
 from dsa.automata.finite_state_machine import EPSILON, NFA, Epsilon
 
 
 class ParseError(Exception):
     """Custom error for when we fail to parse a Regex"""
-
-
-@dataclass
-class ASTBaseNode[T](ABC):
-    """Base class for a node in the abstract syntax tree (AST)"""
-
-    leaf: ClassVar[bool]
-
-    @abstractmethod
-    def children(self) -> Iterator[ASTBaseNode]:
-        raise NotImplementedError
-
-    @classmethod
-    def n_args(cls) -> int:
-        """Number of fields in the dataclass.
-        This is used to infer the arity of operations. For example,
-        the 'Union' subclass requires 2 operands, 'left', and 'right'."""
-
-        n = len(fields(cls))
-        return n
-
-    def repr_node(self) -> str:
-        return f"{self.__class__.__name__}"
-
-    def display(self, indent: int=0) -> None:
-        """Helper method for displaying the AST"""
-        space = indent*' '
-        print(f"{space}{self.repr_node()}")
-        for child in self.children():
-            child.display(indent=indent + 2)
-
-
-@dataclass
-class LiteralNode[T](ASTBaseNode):
-    """Node for a single character in an expression"""
-
-    leaf: ClassVar[bool] = True
-    value: T
-
-    def repr_node(self) -> str:
-        return str(self.value)
-
-    def children(self) -> Iterator[ASTBaseNode]:
-        yield from ()
-
-
-@dataclass
-class Empty[T](ASTBaseNode):
-    """Special node to represent an empty string"""
-
-    leaf: ClassVar[bool] = True
-
-    def repr_node(self) -> str:
-        return "ε"
-
-    def children(self) -> Iterator[ASTBaseNode]:
-        yield from ()
-
-
-
-@dataclass
-class Operator(ASTBaseNode):
-    """Base class for nodes that represent an operation (Kleene star, concatenation, etc)"""
-
-    # Associate a precedence with each operation, for shunting yard algorithm
-    precedence: ClassVar[int]
-    leaf: ClassVar[bool] = False
-    
-    def __init_subclass__(cls, *, precedence: int, **kwargs: object) -> None:
-        super().__init_subclass__(**kwargs)
-        cls.precedence = precedence
-
-    def children(self) -> Iterator[ASTBaseNode]:
-        for field_ in fields(self):
-            assert isinstance(field_, ASTBaseNode)
-            yield field_
-
-
-@dataclass
-class Concat[T](Operator, precedence=2):
-    """Node representing the concatenation operation, e.g. ab (implicit concatenation)"""
-
-    left: ASTBaseNode[T]
-    right: ASTBaseNode[T]
-
-    def children(self) -> Iterator[ASTBaseNode]:
-        yield from (self.left, self.right)
-
-
-@dataclass
-class Union[T](Operator, precedence=1):
-    """Node representing the union operation, e.g. a|b"""
-
-    left: ASTBaseNode[T]
-    right: ASTBaseNode[T]
-
-    def children(self) -> Iterator[ASTBaseNode]:
-        yield from (self.left, self.right)
-
-
-@dataclass
-class Star[T](Operator, precedence=3):
-    """Node representing the Kleene star, e.g. a*"""
-
-    expr: ASTBaseNode[T]
-
-    def children(self) -> Iterator[ASTBaseNode]:
-        yield self.expr
-
-
-@dataclass
-class Plus[T](Operator, precedence=3):
-    """Node representing Kleene plus, e.g. a+ (repeat at least once)"""
-
-    expr: ASTBaseNode[T]
-
-    def children(self) -> Iterator[ASTBaseNode]:
-        yield self.expr
-
-
 
 
 # Special characters for regular expressions
@@ -144,12 +23,97 @@ def is_special(char: object) -> TypeIs[SpecialChar]:
     return isinstance(char, str) and (char in _special_chars)
 
 
-# Map symbols to the corresponding operator class
-OPERATOR_SYMBOLS: dict[SpecialChar, type[Operator]] = {
-    "*": Star,
-    "|": Union,
-    "+": Plus
-}
+# !!!!!!!!!!!!!!!
+
+
+@dataclass(repr=False)
+class Token[T]:
+    """Represents a single token.
+    concat_left/right: whether hte character should be auto-concatenated
+        To a symbol to its left and right. For example ')' should only
+        concatenate right (e.g. '(ab)c' should be parsed as 'ab' concatenated with c)
+    recognize: Whether the token should be automatically recognized from an expression.
+        For example, for '*' it's nice to recognize the operator easily. No symbol
+        is associated with concatenation, but we still like to use a symbol to e.g. visualize
+        the AST, so we use a symbol, but make no attempt to recognize it in expressions"""
+
+    value: T
+    concat_left: bool = field(default=True, kw_only=True)
+    concat_right: bool = field(default=True, kw_only=True)
+    recognize: bool = field(default=True, kw_only=True)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.value!r})"
+
+
+@dataclass(repr=False)
+class SpecialToken(Token[str]):
+    """Special token class representing tokens with special meanings"""
+    pass
+
+
+@dataclass(repr=False)
+class OperatorToken(SpecialToken):
+    """Class representing an operator token
+    arity: The number of operands the operator takes (e.g. 2 for concatenation)
+    precedence: The operator's precedens in the order of operations"""
+
+    arity: int
+    precedence: int
+
+    concat_left: bool = field(default=False, kw_only=True)
+    concat_right: bool = field(default=True, kw_only=True)
+
+
+_concat_token = OperatorToken("·", 2, 2, concat_right=False, recognize=False)
+_specialtokens = (
+    SpecialToken("(", concat_right=False),
+    SpecialToken(")", concat_left=False),
+    OperatorToken("|", 2, 1, concat_right=False),
+    # Concatenation. There's no standard symbol for it, so don't attempt to read in from raw regex
+    _concat_token,
+    OperatorToken("*", 1, 3),
+    OperatorToken("+", 1, 3),
+)
+
+
+class BaseNode[T]:
+    """Represents a node in the AST"""
+
+    def _iter_depth(self, depth: int=0) -> Iterator[tuple[BaseNode[T], int]]:
+        yield self, depth
+        if isinstance(self, Node):
+            for child in self.children:
+                yield from child._iter_depth(depth+1)
+
+    def __iter__(self) -> Iterator[BaseNode[T]]:
+        yield from (node for node, _ in self._iter_depth())
+
+    def display(self, depth: int=0) -> None:
+        for child, depth in self._iter_depth():
+            prefix = "  "*depth
+            print(prefix, end="")
+            if isinstance(child, Node):
+                print(child.symbol)
+            elif isinstance(child, LeafNode):
+                print(child.content)
+            #
+
+class EmptyNode(BaseNode):
+    pass
+
+@dataclass
+class LeafNode[T](BaseNode[T]):
+    """Leaf node in the AST. Stores the value of a single element from the input"""
+    content: T
+
+
+@dataclass
+class Node[T](BaseNode[T]):
+    """Intermediate node in the AST. Stores a symbol representing an operation, and its operands
+    as child nodes."""
+    symbol: str
+    children: tuple[BaseNode[T], ...]
 
 
 class Parser[T]:
@@ -159,107 +123,130 @@ class Parser[T]:
     consisting only of atomic nodes and operations. Then, the AST is constructed from the postfix data.
     
     Simple usage:
-    ast = Parser(expr).parse()
-    """
+    ast = Parser(expr).parse()"""
+
+    SPECIAL_CHARS = {c.value: c for c in _specialtokens}
 
     def __init__(self, expr: Sequence[T|SpecialChar]) -> None:
         self.expr: Sequence[T|SpecialChar] = expr
+        self.idx = 0  # Pointer to current position
 
-        # Operators and parentheses are stored here (parentheses represented with None)
-        self.operators: list[type[Operator]|None] = []
-
+        # Operators and parentheses are stored here
+        self.operator_stack: list[SpecialToken] = []
         # Output queue for postfix notation
-        self.postfix: list[LiteralNode[T]|type[Operator]] = []
-        self.preprocessed = False
+        self.token_stack: list[Token[T]|OperatorToken] = []
+        # Stores nodes in the abstract syntax tree
+        self.ast_nodes: list[BaseNode[T]] = []
 
-    def _push_operator(self, operator: type[Operator]) -> None:
+    def peek(self) -> Token[T]|SpecialToken:
+        """Returns the current token in the expression"""
+
+        char = self.expr[self.idx]
+        
+        if is_special(char):
+            return self.SPECIAL_CHARS[char]
+        else:
+            return Token(char)
+
+    def make_ast_node(self, token: Token[T]|OperatorToken) -> None:
+        """Creates a new node in the AST from a token.
+        This replaces the final step in the shunting yard algorithm, where elements are usually
+        added to an output queue. Here, the tokens are processed as they arrive."""
+
+        if isinstance(token, OperatorToken):
+            operands = (self.ast_nodes.pop() for _ in range(token.arity))
+            children = tuple(reversed(tuple(operands)))
+            new_node = Node(symbol=token.value, children=children)
+            self.ast_nodes.append(new_node)
+        else:
+            self.ast_nodes.append(LeafNode(token.value))
+
+    @singledispatchmethod
+    def process_token(self, token: Token[T]) -> None:
+        self.make_ast_node(token)
+
+    @process_token.register
+    def _(self, token: OperatorToken) -> None:
         """Handles operators during shunting yard algorithm.
         Moves top operators with precedence higher than the new operator to the postfix data,
         then pushes the new operator to the operator stack"""
-        while (
-            self.operators
-            and self.operators[-1] is not None
-            and self.operators[-1].precedence >= operator.precedence
-        ):
-            next_ = self.operators.pop()            
-            assert next_ is not None
-            self.postfix.append(next_)
 
-        self.operators.append(operator)
-
-    def to_postfix(self) -> None:
-        """Converts a sequence of tokens into postfix (reverse Polish) notation.
-        E.g. 'a|b' -> 'ab|'."""
-
-        can_concatenate = False
-
-        for i, token in enumerate(self.expr):
-            if not is_special(token):
-                # Normal characters go directly to the output queue
-                if can_concatenate:
-                    self._push_operator(Concat)
-
-                self.postfix.append(LiteralNode(token))
-            elif token == "(":
-                if can_concatenate:
-                    self._push_operator(Concat)
-                # Store opening parentheses on the stack
-                self.operators.append(None)
-            elif token == ")":
-                # Pop from the operator stack until we find the matching opening parenthesis
-                matched = False
-                while not matched:
-                    if not self.operators:
-                        raise ParseError(f"Unmatched right parenthesis at index {i}")
-                    sym = self.operators.pop()
-                    if sym is None:
-                        matched = True
-                    else:
-                        self.postfix.append(sym)
-            elif token in OPERATOR_SYMBOLS:
-                self._push_operator(OPERATOR_SYMBOLS[token])
-
-            can_concatenate = not is_special(token) or token in ("*",")",)
-        
-        # Put remaining operators in the output queue
-        while self.operators:
-            op = self.operators.pop()
-            assert op is not None
-            self.postfix.append(op)
-
-        self.preprocessed = True
-
-    def construct_ast(self) -> ASTBaseNode[T]:
-        """Construct AST from postfix data"""
-
-        # Make sure the postfix step has run
-        if not self.preprocessed:
-            raise RuntimeError
-        stack: list[ASTBaseNode[T]] = []
-
-        for token in self.postfix:
-            # Push atomic tokens to the operand stack
-            if isinstance(token, LiteralNode):
-                stack.append(token)
+        # Pop operators with same or higher precedence from stack
+        while self.operator_stack:
+            top = self.operator_stack.pop()
+            if isinstance(top, OperatorToken) and top.precedence >= token.precedence:
+                self.make_ast_node(top)
             else:
-                # When encountering an operator, pop the required operands and apply
-                args = tuple(stack.pop() for _ in range(token.n_args()))
-                elem = token(*reversed(args))
-                stack.append(elem)
+                self.operator_stack.append(top)
+                break
 
-        # If the expression was valid, the stack has the AST root node as its only element
-        res = stack.pop()
-        if len(stack) != 0:
-            raise ParseError(f"Error parsing '{self.expr} - '{len(stack)} tokens left on stack after parsing: {stack}")
+        self.operator_stack.append(token)
 
-        return res
+    def _match_bracket(self) -> None:
+        """Called when we encounter a closing parenthesis in the input.
+        Pop from the operator stack until an opening parenthesis is encountered"""
 
-    def parse(self) -> ASTBaseNode[T]:
+        while self.operator_stack:
+            top = self.operator_stack.pop()
+            if isinstance(top, OperatorToken):
+                self.make_ast_node(top)
+            elif isinstance(top, SpecialToken):
+                if top.value != "(":
+                    raise ValueError
+                return
+            else:
+                raise ParseError(f"Unexpected token on operator stack: {top}")
+            #
+        raise ParseError(f"Couldn't match closing parenthesis at index {self.idx}")
+
+    @process_token.register
+    def _(self, token: SpecialToken) -> None:
+        """Process a special token - not an operator but e.g. parentheses"""
+        match token.value:
+            case "(":
+                self.operator_stack.append(token)
+            case ")":
+                self._match_bracket()
+            case _:
+                raise ValueError(f"Could not process: {token}")
+        
+
+    def process_expression(self) -> None:
+        """Processes the expression stored in the parser.
+        This runs the shunting yard algorithm, constructing AST nodes as it runs"""
+
+        # Handle the special case of the empty expression
+        if not self.expr:
+            self.ast_nodes.append(EmptyNode())
+            return
+
+        attempt_concat = False
+        while self.idx < len(self.expr):
+            
+            token = self.peek()
+            implicit_concatenation = attempt_concat and token.concat_left
+            if implicit_concatenation:
+                self.process_token(_concat_token)
+
+            self.process_token(token)
+            attempt_concat = token.concat_right
+            self.idx += 1
+
+        while self.operator_stack:
+            top = self.operator_stack.pop()
+            if not isinstance(top, OperatorToken):
+                raise ParseError(f"Pending token: Expected operator but got {top}")
+            self.make_ast_node(top)
+
+    def parse(self) -> BaseNode[T]:
         """Parses regex and returns the AST root node"""
-        if len(self.expr) == 0:
-            return Empty()
-        self.to_postfix()
-        res = self.construct_ast()
+
+        self.process_expression()
+
+        if len(self.ast_nodes) != 1:
+            raise ParseError("AST structure error")
+
+        res = self.ast_nodes[0]
         return res
 
 
@@ -301,7 +288,7 @@ def _NFA_from_fragment[Q, S](fragment: Fragment[Q, S]) -> NFA[Q, S]:
     return nfa
         
 
-class Constructor[Q]:
+class Constructor[Q, S]:
     """Helper class for constructing an NFA from an AST.
     Instances of this class can be called with an AST to obtain the corresponding NFA.
     This works by implementing Thompson's construction, as described in
@@ -312,32 +299,17 @@ class Constructor[Q]:
         The node generator is used to generate distinct nodes for the NFA."""
         self.node_generator = node_generator
 
-    @singledispatchmethod
-    def construct_fragment[S](self, node: ASTBaseNode[S]) -> Fragment[Q, S]:
-        """Construct a fragment from a given node in the AST.
-        This is a dispatch method, delegating handling of each node class to its registered handlers.
-        We raise an error if an unregistered node class is encountered"""
-        raise NotImplementedError(f"No dispatch method registered for {node.__class__.__name__} operation")
-
-    def empty_fragment(self) -> Fragment[Q, Any]:
+    def empty_fragment(self) -> Fragment[Q, S]:
         """Make an empty fragment (with no transition rules)"""
         u = next(self.node_generator)
         v = next(self.node_generator)
-        res: Fragment[Q, object] = Fragment(initial_state=u, final_state=v)
+        res: Fragment[Q, S] = Fragment(initial_state=u, final_state=v)
         return res
 
-    @construct_fragment.register
-    def _(self, node: LiteralNode) -> Fragment:
-        # Construct a fragment for a literal node
-        res = self.empty_fragment()
-        res.add_transition(u=res.initial_state, v=res.final_state, char=node.value)
-        return res
-
-    @construct_fragment.register
-    def _(self, node: Union) -> Fragment:
+    def union(self, node: Node[S]) -> Fragment[Q, S]:
+        """Construct a fragment for union"""
         # Construct fragments for the left and right sides of the union
-        left = self.construct_fragment(node.left)
-        right = self.construct_fragment(node.right)
+        left, right = map(self.construct_fragment, node.children)
 
         res: Fragment = self.empty_fragment()
         res.transitions |= (left.transitions | right.transitions)
@@ -349,11 +321,10 @@ class Constructor[Q]:
 
         return res
 
-    @construct_fragment.register
-    def _(self, node: Concat) -> Fragment:
+    def concatenate(self, node: Node[S]) -> Fragment[Q, S]:
+        """Construct a fragment for concatenation"""
         # Construct fragments for the left and right sides of the concatenation
-        left = self.construct_fragment(node.left)
-        right = self.construct_fragment(node.right)
+        left, right = map(self.construct_fragment, node.children)
 
         # Combine the two, adding an epsilon-transition from the left to the right part
         res = Fragment(
@@ -364,11 +335,12 @@ class Constructor[Q]:
 
         return res
 
-    @construct_fragment.register
-    def _(self, node: Star) -> Fragment:
+    def star(self, node: Node[S]) -> Fragment[Q, S]:
+        """Construct a fragment for the Kleene star (repeated 0 or more times)"""
         outer = self.empty_fragment()
         # Construct fragment for the inner expression (which the Kleene star repeats)
-        inner = self.construct_fragment(node.expr)
+        expr, = node.children
+        inner = self.construct_fragment(expr)
 
         # Combine outer and inner fragment transitions
         outer.transitions |= inner.transitions
@@ -383,10 +355,11 @@ class Constructor[Q]:
 
         return outer
 
-    @construct_fragment.register
-    def _(self, node: Plus) -> Fragment:
+    def plus(self, node: Node[S]) -> Fragment[Q, S]:
+        """Construct a fragment comprised of a pattern repeated once or more"""
         outer = self.empty_fragment()
-        inner = self.construct_fragment(node.expr)
+        expr, = node.children
+        inner = self.construct_fragment(expr)
         outer.transitions |= inner.transitions
 
         # Make it mandatory to go into the inner expression
@@ -395,19 +368,44 @@ class Constructor[Q]:
         # At the end of the inner expression, finish, or repeat the expression
         outer.add_transition(inner.final_state, inner.initial_state)
         outer.add_transition(inner.final_state, outer.final_state)
-
-
         return outer
 
-    @construct_fragment.register
-    def _(self, node: Empty) -> Fragment:
+    def empty(self) -> Fragment[Q, S]:
+        """Construct a fragment to match only the empty string"""
         res = self.empty_fragment()
         # Add an epsilon-transition from start -> accept
         res.add_transition(u=res.initial_state, v=res.final_state)
         return res
 
-    def __call__[S](self, node: ASTBaseNode[S]) -> NFA[Q, S]:
-        root_fragment = self.construct_fragment(node)
+    def literal(self, node: LeafNode[S]) -> Fragment[Q, S]:
+        """Construct a fragment for a literal node"""
+        res = self.empty_fragment()
+        res.add_transition(u=res.initial_state, v=res.final_state, char=node.content)
+        return res
+
+    def construct_fragment(self, node: BaseNode[S]) -> Fragment[Q, S]:
+        if isinstance(node, LeafNode):
+            return self.literal(node)
+        elif isinstance(node, EmptyNode):
+            return self.empty()
+        if not isinstance(node, Node):
+            raise TypeError(f"Invalid node type: {type(node)}")
+
+        match node.symbol:
+            case "|":
+                return self.union(node)
+            case "·":
+                return self.concatenate(node)
+            case "*":
+                return self.star(node)
+            case "+":
+                return self.plus(node)
+            case _:
+                raise ValueError(f"Unknown special symbol: {node.symbol!r}")
+        raise NotImplementedError
+
+    def __call__(self, node: BaseNode[S]) -> NFA[Q, S]:
+        root_fragment: Fragment[Q, S] = self.construct_fragment(node)
         res = _NFA_from_fragment(root_fragment)
         return res
 
@@ -418,6 +416,6 @@ def regex_to_NFA[S](expr: Sequence[S]) -> NFA[int, S]:
     # Get the abstract syntax tree
     ast = Parser(expr).parse()
     # Construct the NFA
-    constructor = Constructor(node_generator=count())
+    constructor: Constructor[int, S] = Constructor(node_generator=count())
     res = constructor(ast)
     return res

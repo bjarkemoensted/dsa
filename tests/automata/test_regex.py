@@ -5,6 +5,7 @@ from itertools import product
 from dsa.automata import regex
 
 patterns = (
+    '',
     'a',
     'b',
     'ab',
@@ -23,6 +24,7 @@ patterns = (
     'a(a|b)*',
     '(ab)*',
     '(ab)+',
+    'a+b',
     'a*b',
     'ab*',
 )
@@ -37,7 +39,7 @@ class TestRegex(unittest.TestCase):
         """Check that valid regexes can be parsed to an AST"""
         for pattern in patterns:
             ast = regex.Parser(pattern).parse()
-            self.assertIsInstance(ast, regex.ASTBaseNode)
+            self.assertIsInstance(ast, regex.BaseNode)
 
     def test_accept(self) -> None:
         """Test that converting REs into NFAs gives the same accepted/rejected strings as the built-in
@@ -70,6 +72,6 @@ class TestRegex(unittest.TestCase):
         for pattern, n_concats in cases:
             with self.subTest(pattern=pattern):
                 parser = regex.Parser(pattern)
-                parser.to_postfix()
-                n = sum(elem is regex.Concat for elem in parser.postfix)
+                ast = parser.parse()
+                n = sum(isinstance(node, regex.Node) and node.symbol == "·" for node in ast)
                 self.assertEqual(n, n_concats, f"Error parsing {pattern}: {n} != {n_concats}")
