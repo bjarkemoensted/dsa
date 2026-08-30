@@ -23,9 +23,6 @@ def is_special(char: object) -> TypeIs[SpecialChar]:
     return isinstance(char, str) and (char in _special_chars)
 
 
-# !!!!!!!!!!!!!!!
-
-
 @dataclass(repr=False)
 class Token[T]:
     """Represents a single token.
