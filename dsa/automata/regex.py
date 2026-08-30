@@ -123,9 +123,20 @@ class Star[T](Operator, precedence=3):
         yield self.expr
 
 
+@dataclass
+class Plus[T](Operator, precedence=3):
+    """Node representing Kleene plus, e.g. a+ (repeat at least once)"""
+
+    expr: ASTBaseNode[T]
+
+    def children(self) -> Iterator[ASTBaseNode]:
+        yield self.expr
+
+
+
 
 # Special characters for regular expressions
-type SpecialChar = Literal["(", ")", "*", "|"]
+type SpecialChar = Literal["(", ")", "*", "|", "+"]
 _special_chars = set(get_args(SpecialChar.__value__))
 
 
@@ -136,7 +147,8 @@ def is_special(char: object) -> TypeIs[SpecialChar]:
 # Map symbols to the corresponding operator class
 OPERATOR_SYMBOLS: dict[SpecialChar, type[Operator]] = {
     "*": Star,
-    "|": Union
+    "|": Union,
+    "+": Plus
 }
 
 
@@ -305,7 +317,7 @@ class Constructor[Q]:
         """Construct a fragment from a given node in the AST.
         This is a dispatch method, delegating handling of each node class to its registered handlers.
         We raise an error if an unregistered node class is encountered"""
-        raise NotImplementedError(f"No dispatch method registered for {type(node)}")
+        raise NotImplementedError(f"No dispatch method registered for {node.__class__.__name__} operation")
 
     def empty_fragment(self) -> Fragment[Q, Any]:
         """Make an empty fragment (with no transition rules)"""
@@ -368,6 +380,22 @@ class Constructor[Q]:
         # At the end of the inner expression, finish, or repeat the expression
         outer.add_transition(inner.final_state, inner.initial_state)
         outer.add_transition(inner.final_state, outer.final_state)
+
+        return outer
+
+    @construct_fragment.register
+    def _(self, node: Plus) -> Fragment:
+        outer = self.empty_fragment()
+        inner = self.construct_fragment(node.expr)
+        outer.transitions |= inner.transitions
+
+        # Make it mandatory to go into the inner expression
+        outer.add_transition(outer.initial_state, inner.initial_state)
+
+        # At the end of the inner expression, finish, or repeat the expression
+        outer.add_transition(inner.final_state, inner.initial_state)
+        outer.add_transition(inner.final_state, outer.final_state)
+
 
         return outer
 

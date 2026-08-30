@@ -13,18 +13,18 @@ patterns = (
     'a|b',
     'ab|cd',
     'a*',
-    #'b+',
+    'b+',
     #'a?',
-    #'a+',
+    'a+',
     '(a)',
     '(ab)',
     '(a|b)',
     '(a|b)*',
     'a(a|b)*',
     '(ab)*',
-    # '(ab)+',
-    # 'a*b',
-    # 'ab*',
+    '(ab)+',
+    'a*b',
+    'ab*',
 )
 
 MAX_STRING_LENGTH = 6
