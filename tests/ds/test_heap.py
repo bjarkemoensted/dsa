@@ -18,7 +18,7 @@ class TestHeap(unittest.TestCase):
         self.vals_heap: list[int] = [v for v in self.vals]
         heap_operations.heapify(self.vals_heap, min_heap=self.min_heap)
     
-    def heap_property_satisfied(self, vals) -> bool:
+    def heap_property_satisfied(self, vals: list[int]) -> bool:
         res = heap_operations._satisfies_heap_property(vals, min_heap=self.min_heap)
         return res
     
@@ -68,18 +68,18 @@ class TestHeap(unittest.TestCase):
 class TestMaxHeap(TestHeap):
     min_heap = False
     
-    def test_ordering(self):
+    def test_ordering(self) -> None:
         """Double check that the ordering between parent and child nodes is parent >= child"""
         for ip, ic in heap_operations.iterate_parent_child_pairs(size=len(self.vals_heap)):
             self.assertGreaterEqual(self.vals_heap[ip], self.vals_heap[ic])
 
 
 class TestSorting(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.vals = make_integers(n=1000)
         return super().setUp()
     
-    def test_heap_sort(self):
+    def test_heap_sort(self) -> None:
         heap_operations.heapsort(self.vals)
         for i in range(len(self.vals) - 1):
             i2 = i+1
@@ -92,14 +92,14 @@ class TestSorting(unittest.TestCase):
 
 
 class TestHeapClass(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.heap = Heap(values=make_integers(n=200))
         return super().setUp()
     
-    def test_heap_property(self):
+    def test_heap_property(self) -> None:
         self.assertTrue(self.heap._satisfies_heap_invariant())
     
-    def test_push(self):
+    def test_push(self) -> None:
         n_items = len(self.heap)
         for val in make_integers(seed=1337):
             self.heap.push(val)
@@ -107,7 +107,7 @@ class TestHeapClass(unittest.TestCase):
             n_items += 1
             self.assertEqual(n_items, len(self.heap))
     
-    def test_pop(self):
+    def test_pop(self) -> None:
         for _ in range(len(self.heap)):
             val = self.heap.pop()
             self.assertTrue(all(self.heap.comp(val, other) for other in self.heap.A))
@@ -115,7 +115,7 @@ class TestHeapClass(unittest.TestCase):
         
         self.assertRaises(IndexError, self.heap.pop)
     
-    def test_height(self):
+    def test_height(self) -> None:
         for n in range(100):
             vals = range(n)
             depth_brute = 0
@@ -127,7 +127,7 @@ class TestHeapClass(unittest.TestCase):
             heap = Heap(vals)
             self.assertEqual(depth_brute, heap.height)
     
-    def test_ascii_representation(self):
+    def test_ascii_representation(self) -> None:
         n_vals = [0, 1, 3, 4, 15, 31, 32, 1023]
         for n in n_vals:
             values = make_integers(n=n)

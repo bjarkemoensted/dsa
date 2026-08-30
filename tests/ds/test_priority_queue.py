@@ -6,8 +6,8 @@ from .linear_basic_tests import TestLinear
 
 
 class BasicPriorityQueueTest(TestLinear):
-    def create_data_structure(self, *args, **kwargs) -> PriorityQueue[int]:
-        return PriorityQueue(*args, **kwargs)
+    def create_data_structure(self, *args: object, **kwargs: object) -> PriorityQueue[int]:
+        return PriorityQueue(*args, **kwargs)  # type: ignore
 
 
 class _CustomObject:
@@ -18,14 +18,14 @@ class _CustomObject:
 
 class TestPriorityQueue(unittest.TestCase):
 
-    def setUp(self):
-        self.q = PriorityQueue()
+    def setUp(self) -> None:
+        self.q: PriorityQueue[str] = PriorityQueue()
 
-    def test_put_and_get_single_element(self):
+    def test_put_and_get_single_element(self) -> None:
         self.q.put("task1", priority=1)
         self.assertEqual(self.q.get(), "task1")
 
-    def test_put_and_get_multiple_elements(self):
+    def test_put_and_get_multiple_elements(self) -> None:
         self.q.put("low", priority=5)
         self.q.put("high", priority=1)  # assuming lower number = higher priority
         self.q.put("medium", priority=3)
@@ -33,7 +33,7 @@ class TestPriorityQueue(unittest.TestCase):
         self.assertEqual(self.q.get(), "medium")
         self.assertEqual(self.q.get(), "low")
 
-    def test_stability_with_same_priority(self):
+    def test_stability_with_same_priority(self) -> None:
         self.q.put("task1", priority=2)
         self.q.put("task2", priority=2)
         self.q.put("task3", priority=2)
@@ -42,7 +42,7 @@ class TestPriorityQueue(unittest.TestCase):
         self.assertEqual(self.q.get(), "task2")
         self.assertEqual(self.q.get(), "task3")
 
-    def test_mixed_priorities_and_order(self):
+    def test_mixed_priorities_and_order(self) -> None:
         self.q.put("a", priority=10)
         self.q.put("b", priority=1)
         self.q.put("c", priority=5)
@@ -53,12 +53,12 @@ class TestPriorityQueue(unittest.TestCase):
         self.assertEqual(self.q.get(), "c")
         self.assertEqual(self.q.get(), "a")
 
-    def test_large_number_of_elements(self):
+    def test_large_number_of_elements(self) -> None:
         for i in range(1000):
             self.q.put(f"item{i}", priority=i)
         self.assertEqual(self.q.get(), "item0")  # smallest priority first
 
-    def test_custom_objects(self):
+    def test_custom_objects(self) -> None:
         items = [_CustomObject() for _ in range(3)]
         for item in items:
             self.q.put(item, priority=1)

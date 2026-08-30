@@ -119,7 +119,7 @@ class ParseNode(anytree.AnyNode):
         else:
             raise TypeError
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, ParseNode):
             return NotImplemented
         
@@ -131,7 +131,7 @@ class ParseNode(anytree.AnyNode):
         # Recurse equality check on child nodes
         return all(child == otherchild for child, otherchild in zip(self.children, other.children))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self.symbol)
     
     def as_tuple(self) -> tuple:
@@ -237,7 +237,7 @@ def brute_force_sentences(
         from_symbol: Nonterminal,
         productions: ProductionType,
         max_tokens: int,
-        only_distinct=True
+        only_distinct: bool=True
     ) -> Iterator[SentenceType]:
     """Computes all sentences with length no greater than the specified
     number of tokens.

@@ -28,6 +28,18 @@ dev = [
     "ruff>=0.15.2",
 ]
 
+[tool.mypy]
+disallow_untyped_defs = true
+
+[tool.ruff]
+line-length = 120
+lint.select = [
+  "E",  # pycodestyle (PEP 8)
+  "F",  # pyflakes (unused imports, variables, etc.)
+  "I",  # isort (import sorting)
+]
+lint.ignore = []
+
 [tool.uv]
 default-groups = "all"
 

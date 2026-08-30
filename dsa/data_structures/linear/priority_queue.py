@@ -4,7 +4,7 @@ from dsa.data_structures.linear.base import BaseContainer
 type PriorityType = float|tuple[float, int]
 
 
-def _get_priority(elem: tuple):
+def _get_priority[T](elem: tuple[T, object]) -> T:
     priority, _ = elem
     return priority
 
@@ -15,7 +15,7 @@ class PriorityQueue[T](BaseContainer):
     
     arr: list[tuple[PriorityType, T]]
     
-    def __init__(self, maxsize = -1, stable=True) -> None:
+    def __init__(self, maxsize: int = -1, stable: bool=True) -> None:
         """maxsize (int, optional) - max allowed number of elements in the queue. -1 for unlimited size.
         stable (bool, default: True) - indicates whether the queue is stable. If stable, elements with equal
             priorities are returned in the order added."""
@@ -28,7 +28,7 @@ class PriorityQueue[T](BaseContainer):
     def _size(self) -> int:
         return len(self.arr)
 
-    def _put(self, item, priority: float=0) -> None:
+    def _put(self, item: T, priority: float=0) -> None:
         priority_: PriorityType = (priority, self._counter) if self.stable else priority
         if self.stable:
             self._counter += 1

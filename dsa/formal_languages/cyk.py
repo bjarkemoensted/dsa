@@ -16,7 +16,7 @@ class CYKParser:
     The main exception is the example there uses 1-indexing and does not seem to account for empty strings.
     The implementation here uses 0-indexing, and treats empty string similarly to any other sentence."""
 
-    def __init__(self, G: CFG, assume_cnf=False) -> None:
+    def __init__(self, G: CFG, assume_cnf: bool=False) -> None:
         """Create a CYK Parser, using the input grammar.
         assume_cnf: If True, assumed the grammar is already on Chomsky Normal Form, and proceeds without
             converting it. If False, the grammar is converted into CNF."""

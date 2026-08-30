@@ -16,7 +16,7 @@ class BaseContainer[T](ABC):
     def __init__(self, maxsize: int=-1):
         self.maxsize = maxsize
     
-    def size(self):
+    def size(self) -> int:
         return self._size()
     
     def empty(self) -> bool:
@@ -28,12 +28,12 @@ class BaseContainer[T](ABC):
         """Whether the data structure is currently full"""
         return self.size() == self.maxsize
     
-    def get(self, **kwargs) -> T:
+    def get(self, **kwargs: object) -> T:
         if self.empty():
             raise RuntimeError(f"{self.__class__.__name__} is empty")
         return self._get(**kwargs)
     
-    def put(self, item: T, **kwargs) -> None:
+    def put(self, item: T, **kwargs: object) -> None:
         if self.full():
             raise RuntimeError(f"{self.__class__.__name__} is full, can't add item ({item})")
         

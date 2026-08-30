@@ -54,7 +54,7 @@ class TestCFG(unittest.TestCase):
                     self.assertIsInstance(s, str)
                     self.assertIn(s, term_set)
     
-    def test_ascii_repr(self):
+    def test_ascii_repr(self) -> None:
         bad_grammars = [cfg_examples.example_useless.grammar]
         grammars = list(self.grammars) + bad_grammars
         for grammar in grammars:
@@ -65,7 +65,7 @@ class TestCFG(unittest.TestCase):
             n_rules_grammar = sum(map(len, grammar.productions.values()))
             self.assertEqual(n_rules_ascii, n_rules_grammar)
     
-    def test_invalid_grammar_error(self):
+    def test_invalid_grammar_error(self) -> None:
         # Check error when attempting to initialize a 'dead end' grammar (nonterminal with no productions)
         ex = cfg_examples.example_illegal
         with self.assertRaises(InvalidGrammarError):
@@ -76,7 +76,7 @@ class TestCFG(unittest.TestCase):
 
 
 class TestUselessSymbolDetection(unittest.TestCase):
-    def test_start_symbol(self):
+    def test_start_symbol(self) -> None:
         """Check that the start symbol isn't mistakenly labelled as 'useless' because it's unreachable
         from other nonterms - in a CNF grammar, the start should, by construction, not be reachable from
         any nonterm, so it's crucial to allow the start symbol to act as a source node."""
@@ -155,13 +155,13 @@ class TestCNF(unittest.TestCase):
 
             yield G_converted
 
-    def test_start_step(self):
+    def test_start_step(self) -> None:
         """Check that the START step has removed any RHS productions of the start symbol"""
         for G in self._partially_converted("_start"):
             for symbol in G.iter_produced_symbols():
                 self.assertNotEqual(symbol, G.start_symbol)
     
-    def test_term_step(self):
+    def test_term_step(self) -> None:
         """Test that the TERM step has removed any nonsolitary terminals in productions"""
         for G in self._partially_converted("_term"):
             for p in G.iter_rhs():
@@ -169,7 +169,7 @@ class TestCNF(unittest.TestCase):
                 # Check that terminals make up all or none of the symbols
                 self.assertIn(n_terminals, (0, len(p)))
     
-    def test_bin_step(self):
+    def test_bin_step(self) -> None:
         """Test that the BIN step has removed any productions of more than 2 nonterminals"""
 
         for G in self._partially_converted("_bin"):
@@ -177,7 +177,7 @@ class TestCNF(unittest.TestCase):
                 n_nonterms = sum(isinstance(symbol, Nonterminal) for symbol in p)
                 self.assertLessEqual(n_nonterms, 2)
 
-    def test_del_step(self):
+    def test_del_step(self) -> None:
         """Test that the DEL step has removed any empty productions except from the start symbol"""
         
         for G in self._partially_converted("_del"):
@@ -187,7 +187,7 @@ class TestCNF(unittest.TestCase):
                     continue
                 self.assertNotEqual(sym, ())
 
-    def test_unit_step(self):
+    def test_unit_step(self) -> None:
         """Test that the UNIT step has removed productions of individual nonterminals (A -> B)"""
         
         for G in self._partially_converted("_unit"):
@@ -196,12 +196,12 @@ class TestCNF(unittest.TestCase):
                     continue
                 self.assertNotIsInstance(p[0], Nonterminal)
 
-    def test_useless_symbol_detection(self):
+    def test_useless_symbol_detection(self) -> None:
         G = cfg_examples.example_useless.grammar
         useless_symbols = cnf_tools.get_useless_symbols(G)
         self.assertGreater(len(useless_symbols), 0)
 
-    def test_cnf_detection(self):
+    def test_cnf_detection(self) -> None:
         # Some example grammars and whether they're in CNF
         grammars_with_cnf_status = (
             (cfg_examples.example_arithmetic, False),
@@ -214,7 +214,7 @@ class TestCNF(unittest.TestCase):
         for ex, cnf in grammars_with_cnf_status:
             self.assertIs(cnf_tools.grammar_is_cnf(ex.grammar), cnf, f"CNF detection failed for '{ex.name}'")
     
-    def test_cnf_conversion_retains_grammar(self):
+    def test_cnf_conversion_retains_grammar(self) -> None:
         """Brute forces all sentences up to some length for some grammars.
         Check that the same sentences are produced after converting the grammar
         to CNF."""
@@ -227,7 +227,7 @@ class TestCNF(unittest.TestCase):
             sentences_cnf = set(G_cnf.brute_force_sentences(n_tokens))
             self.assertSetEqual(sentences, sentences_cnf)
     
-    def test_cnf_after_conversion(self):
+    def test_cnf_after_conversion(self) -> None:
         for ex in self.examples:
             G = ex.grammar
             G_cnf = cnf_tools.chomsky_normal_form(G)
@@ -235,7 +235,7 @@ class TestCNF(unittest.TestCase):
 
 
 class TestCFGMembership(unittest.TestCase):
-    def test_all_grammars(self):
+    def test_all_grammars(self) -> None:
         for ex in cfg_examples.all_examples:
             grammar_name = ex.name
             parser = CYKParser(ex.grammar)
@@ -254,7 +254,7 @@ class TestParseTrees(unittest.TestCase):
     def setUp(self) -> None:
         self.examples = cfg_examples.all_examples
 
-    def test_parse_tress_for_accepted_sentences(self):
+    def test_parse_tress_for_accepted_sentences(self) -> None:
         for ex in self.examples:
             G = ex.grammar
             parser = CYKParser(G)
@@ -263,7 +263,7 @@ class TestParseTrees(unittest.TestCase):
                 tree = parser.parse(sentence)
                 self.assertIs(tree is None, not accepted, msg=f"Error in {ex.name}")
 
-    def test_parse_forests_match_productions(self):
+    def test_parse_forests_match_productions(self) -> None:
         """Check that parse forests generate one parse tree for each
         distinct derivation of a sentence"""
         
@@ -294,7 +294,7 @@ class TestParseTrees(unittest.TestCase):
                 )
                 self.assertEqual(n_distinct_trees, multiplicity, msg=msg)
     
-    def test_parse_forest_on_non_producible_sentence(self):
+    def test_parse_forest_on_non_producible_sentence(self) -> None:
         for ex in self.examples:
             G = ex.grammar
             parser = CYKParser(G)
@@ -305,7 +305,7 @@ class TestParseTrees(unittest.TestCase):
                 n += 1
             self.assertEqual(n, 0)
     
-    def test_parse_forest_trees_are_distinct(self):
+    def test_parse_forest_trees_are_distinct(self) -> None:
         for ex in self.examples:
             G = ex.grammar
             parser = CYKParser(G)
@@ -353,7 +353,7 @@ class TestParseTrees(unittest.TestCase):
         for child in node.children:
             self._check_parse_node_grammar_consistency(G, child)
 
-    def test_parse_forest_trees_respect_grammar(self):
+    def test_parse_forest_trees_respect_grammar(self) -> None:
         for ex in self.examples:
             G = ex.grammar
             parser = CYKParser(G)
@@ -384,7 +384,7 @@ class TestParseTrees(unittest.TestCase):
         
         return None
 
-    def _check_derivation(self, G: CFG, tree: ParseNode, direction: DirectionType):
+    def _check_derivation(self, G: CFG, tree: ParseNode, direction: DirectionType) -> None:
         """Check that the tree derives a sentence according to grammar G."""
         steps = tree.iterate_derivation(direction=direction)
         # Derivation must start with the start symbol

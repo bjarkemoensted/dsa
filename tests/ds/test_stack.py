@@ -6,8 +6,8 @@ from .linear_basic_tests import TestLinear
 
 
 class BasicStackTest(TestLinear):    
-    def create_data_structure(self, *args, **kwargs) -> Stack[int]:
-        return Stack(*args, **kwargs)
+    def create_data_structure(self, *args: object, **kwargs: object) -> Stack[int]:
+        return Stack(*args, **kwargs)  # type: ignore
 
 
 class StackTest(unittest.TestCase):    
@@ -15,7 +15,7 @@ class StackTest(unittest.TestCase):
         self.stack: Stack[int] = Stack()
         return super().setUp()
     
-    def test_reversion(self):
+    def test_reversion(self) -> None:
         vals = list(range(20))
         for val in vals:
             self.stack.push(val)
@@ -28,23 +28,23 @@ class StackTest(unittest.TestCase):
         
         self.assertEqual(recovered, vals[::-1])
 
-    def test_underflow(self):
+    def test_underflow(self) -> None:
         self.assertRaises(RuntimeError, self.stack.pop)
     
-    def test_overflow(self):
-        stack = Stack(maxsize=0)
+    def test_overflow(self) -> None:
+        stack: Stack[int] = Stack(maxsize=0)
         val = 42
         self.assertRaises(RuntimeError, stack.push, val)
     
-    def test_push_and_pop(self):
+    def test_push_and_pop(self) -> None:
         val = 42
         self.stack.push(val)
         
         returned = self.stack.pop()
         self.assertEqual(val, returned)
     
-    def test_size_methods(self):
-        stack = Stack(maxsize=1)
+    def test_size_methods(self) -> None:
+        stack: Stack[int] = Stack(maxsize=1)
         self.assertTrue(stack.empty())
         self.assertFalse(stack.full())
         

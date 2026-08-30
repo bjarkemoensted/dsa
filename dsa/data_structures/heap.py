@@ -1,7 +1,8 @@
 """A heap implementation where the heap is implemented in a class of its own.
 This is a bit more cumbersome in some regards, but also has advantages. For example, options such as min vs max heap,
-and choice of a key function, are only passed once, when initializing a heap instance. This reduces the risk of forgetting
-to pass one or the other when e.g. pushing or popping elements, which can lead to violations of the heap property."""
+and choice of a key function, are only passed once, when initializing a heap instance.
+This reduces the risk of forgetting to pass one or the other when e.g. pushing or popping elements,
+which can lead to violations of the heap property."""
 
 import math
 from collections.abc import Callable, Iterable
@@ -45,14 +46,19 @@ class Comparison[T]:
 
 
 class Heap[T]:
-    """Implements a Heap class. The class supports both min- and max-heaps, and accepts an arbitrary key function, maintaining
-    the heap invariant on the result of applying the function to elements on the heap.
-    In other words, a standard min-heap will maintain the invariant parent <= child for all parent-child pairs, but if a key function f
-    is provided, the invariant will instead be f(parent) <= f(child)."""
+    """Implements a Heap class. The class supports both min- and max-heaps, and accepts an arbitrary key function,
+    maintaining the heap invariant on the result of applying the function to elements on the heap.
+    In other words, a standard min-heap will maintain the invariant parent <= child for all parent-child pairs,
+    but if a key function f is provided, the invariant will instead be f(parent) <= f(child)."""
     
     A: list[T]
     
-    def __init__(self, values: Iterable[T]|None=None, min_heap: bool=MIN_HEAP_DEFAULT, key=None):
+    def __init__(
+            self,
+            values: Iterable[T]|None=None,
+            min_heap: bool=MIN_HEAP_DEFAULT,
+            key: Callable[[T], Comparable]|None=None
+            ):
         """values: optional iterable of elements with which to initialize the heap.
         min_: Whether to use a min-heap (defaults to True).
         key: Optional callable to apply to elements before comparing (for basing the heap structure
@@ -143,17 +149,17 @@ class Heap[T]:
         
         return res
     
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.A)
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.A})"
     
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self)
     
     @property
-    def height(self):
+    def height(self) -> int:
         """The height of the heap"""
         n_elems = len(self)
         res = math.floor(math.log2(len(self))) + 1 if n_elems > 0 else 0

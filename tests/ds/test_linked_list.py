@@ -6,16 +6,16 @@ from .linear_basic_tests import TestLinear
 
 
 class BasicPriorityQueueTest(TestLinear):
-    def create_data_structure(self, *args, **kwargs) -> LinkedList[int]:
-        return LinkedList(*args, **kwargs)
+    def create_data_structure(self, *args: object, **kwargs: object) -> LinkedList[int]:
+        return LinkedList(*args, **kwargs)  # type: ignore
 
 
 class TestLinkedList(unittest.TestCase):
 
-    def setUp(self):
-        self.list = LinkedList()
+    def setUp(self) -> None:
+        self.list: LinkedList[object] = LinkedList()
 
-    def test_insert_single_element(self):
+    def test_insert_single_element(self) -> None:
         self.list.put(10)
         
         node = self.list.search(10)
@@ -25,7 +25,7 @@ class TestLinkedList(unittest.TestCase):
         self.assertIs(node.prev, self.list.nil)
         self.assertIs(node.next, self.list.nil)
 
-    def test_insert_multiple_elements(self):
+    def test_insert_multiple_elements(self) -> None:
         values = [1, 2, 3]
         for v in values:
             self.list.put(v)
@@ -43,7 +43,7 @@ class TestLinkedList(unittest.TestCase):
         self.assertIs(n2.next, n3)
         self.assertIs(n3.prev, n2)
 
-    def test_search_existing_and_non_existing(self):
+    def test_search_existing_and_non_existing(self) -> None:
         self.list.put("a")
         self.list.put("b")
 
@@ -54,12 +54,12 @@ class TestLinkedList(unittest.TestCase):
         self.assertIsNotNone(found)
         self.assertEqual(found.key, "a")
 
-    def test_instantiate_with_list(self):
+    def test_instantiate_with_list(self) -> None:
         values = list(range(20))
         a = LinkedList(values)
         self.assertEqual(values, a.to_list())
 
-    def test_delete_existing_node(self):
+    def test_delete_existing_node(self) -> None:
         self.list.extend([1, 2, 3])
 
         self.list.remove(2)
@@ -71,7 +71,7 @@ class TestLinkedList(unittest.TestCase):
         self.assertIs(n1.next, n3)
         self.assertIs(n3.prev, n1)
 
-    def test_delete_head_node(self):
+    def test_delete_head_node(self) -> None:
         for v in [1, 2, 3]:
             self.list.append(v)
 
@@ -81,7 +81,7 @@ class TestLinkedList(unittest.TestCase):
         n2 = self.list.search(2)
         self.assertIs(n2.prev, self.list.nil)
 
-    def test_delete_tail_node(self):
+    def test_delete_tail_node(self) -> None:
         for v in [1, 2, 3]:
             self.list.append(v)
 
@@ -92,7 +92,7 @@ class TestLinkedList(unittest.TestCase):
         n2 = self.list.search(2)
         self.assertIs(n2.next, self.list.nil)
 
-    def test_delete_nonexistent_value(self):
+    def test_delete_nonexistent_value(self) -> None:
         self.list.append(1)
         self.list.append(2)
         with self.assertRaises(ValueError):
@@ -101,7 +101,7 @@ class TestLinkedList(unittest.TestCase):
         self.assertIsNotNone(self.list.search(1))
         self.assertIsNotNone(self.list.search(2))
 
-    def test_insert_and_delete_until_empty(self):
+    def test_insert_and_delete_until_empty(self) -> None:
         values = [5, 10, 15]
         for v in values:
             self.list.append(v)

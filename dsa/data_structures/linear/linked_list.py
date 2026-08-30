@@ -6,34 +6,47 @@ from typing import Self, cast
 from dsa.data_structures.linear.queue import BaseContainer
 
 
+class Sentinel:
+    pass
+
+
+NIL = Sentinel()
+
+
 class Node[T]:
     """A node in a linked list.
     The value stored in the node is the key attribute.
     prev and next attributes point to the predessesor and successor nodes, respectively."""
 
-    def __init__(self, key: T|None) -> None:
+    def __init__(self, key: T|Sentinel) -> None:
         """Initialize a node. If key is not provided, None is used initially.
         prev and next initially point to None - successor and predesssesor nodes
         must be set after initialization"""
-        self.key: T|None = key
+        self._key: T|Sentinel = key
         self.prev: Node[T]|None = None
         self.next: Node[T]|None = None
+
+    @property
+    def key(self) -> T:
+        if isinstance(self._key, Sentinel):
+            raise TypeError("Attempted to access key on NIL node")
+        return self._key
 
     @classmethod
     def make_nil(cls) -> Self:
         """Makes a sentinel node to represent NIL"""
-        inst = cls(key=None)
+        inst = cls(key=NIL)
         inst.prev = inst
         inst.next = inst
         return inst
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__} <{self.key}>"
     
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self)
 
-    def _iterate_direction(self, forward=True) -> Iterator[Node]:
+    def _iterate_direction(self, forward: bool=True) -> Iterator[Node[T]]:
         """Iterates over this node and all successors (if forward is True) or predessesors.
         Stops iteration if we run out of nodes, or if we arrive back at the starting node."""
         
@@ -50,7 +63,7 @@ class Node[T]:
         yield from self._iterate_direction(forward=True)
     
     def backwards(self) -> Iterator[Node]:
-        """Iterates over this node and all predessesor"""
+        """Iterates over this node and all predecessor"""
         yield from self._iterate_direction(forward=False)
 
 
@@ -60,7 +73,7 @@ class LinkedList[T](BaseContainer):
     As the number of elements can't be efficiently computed without traversing the entire list,
     a counter is maintained when attaching new nodes or detaching current ones."""
     
-    def __init__(self, values: Iterable[T]|None=None, maxsize = -1) -> None:
+    def __init__(self, values: Iterable[T]|None=None, maxsize: int = -1) -> None:
         super().__init__(maxsize)
         self.nil: Node[T] = Node.make_nil()
         self._n_elems: int = 0
@@ -68,7 +81,7 @@ class LinkedList[T](BaseContainer):
         if values:
             self.extend(values)
     
-    def _put(self, item: T, insert_after: Node[T]|None=None):
+    def _put(self, item: T, insert_after: Node[T]|None=None) -> None:
         """Insert an element. If a node is specified, inserts after that node."""
         x = Node(key=item)
         self.attach_node(x, insert_after=insert_after)
@@ -125,10 +138,10 @@ class LinkedList[T](BaseContainer):
         
         self._n_elems -= 1
     
-    def _size(self):
+    def _size(self) -> int:
         return self._n_elems
     
-    def to_list(self):
+    def to_list(self) -> list[T]:
         return [node.key for node in self.iterate_nodes()]
 
     def iterate_nodes(self) -> Iterator[Node[T]]:
@@ -173,7 +186,7 @@ class LinkedList[T](BaseContainer):
         for value in values:
             self.appendleft(value)
     
-    def insert(self, item: T, index: int=0):
+    def insert(self, item: T, index: int=0) -> None:
         """Insert an element into the list.
         If an index is provided, the element is inserted at that position if possible (if index
         is larger than the list, the element is inserted at the end)."""
@@ -183,7 +196,7 @@ class LinkedList[T](BaseContainer):
                 return self.put(item, insert_after=node)
         return self.put(item)
     
-    def remove(self, item: T):
+    def remove(self, item: T) -> None:
         """Removes the first occurrence of a value fro mthe list"""
         node = self.search(item)
         self.detach_node(node)

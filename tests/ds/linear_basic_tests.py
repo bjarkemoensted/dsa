@@ -16,12 +16,12 @@ class TestLinear[T, L: BaseContainer](ABC, unittest.TestCase):
     vals_ = tuple(range(50))
     bounded_maxsize = 32
 
-    def test_is_full(self):
+    def test_is_full(self) -> None:
         for val in range(self.data_bounded.maxsize):
             self.data_bounded.put(val)
         self.assertTrue(self.data_bounded.full())
 
-    def test_insertion(self):
+    def test_insertion(self) -> None:
         for i, val in enumerate(self.vals_):
             size_exp = i + 1
             self.data.put(val)
@@ -34,7 +34,7 @@ class TestLinear[T, L: BaseContainer](ABC, unittest.TestCase):
                 self.data_bounded.put(val)
             self.assertEqual(self.data_bounded.size(), min(size_exp, self.data_bounded.maxsize))
     
-    def test_deletion(self):
+    def test_deletion(self) -> None:
         for val in self.vals_:
             self.data.put(val)
         
@@ -44,7 +44,7 @@ class TestLinear[T, L: BaseContainer](ABC, unittest.TestCase):
             n_elems -= 1
             self.assertEqual(n_elems, self.data.size())
     
-    def test_overflow(self):
+    def test_overflow(self) -> None:
         for val in range(self.data_bounded.maxsize):
             self.data_bounded.put(val)
         
@@ -53,13 +53,13 @@ class TestLinear[T, L: BaseContainer](ABC, unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.data_bounded.put(42)
     
-    def test_underflow(self):
+    def test_underflow(self) -> None:
         self.assertTrue(self.data.empty())
 
         with self.assertRaises(RuntimeError):
             self.data.get()
     
-    def test_to_list(self):
+    def test_to_list(self) -> None:
         for i in range(len(self.vals_)):
             subvals = list(self.vals_[:i])
             q = deepcopy(self.data)
@@ -75,9 +75,9 @@ class TestLinear[T, L: BaseContainer](ABC, unittest.TestCase):
             self.assertEqual(len(list_), q.size())
     
     @abstractmethod
-    def create_data_structure(self, *args, **kwargs) -> L:
+    def create_data_structure(self, *args: object, **kwargs: object) -> L:
         raise NotImplementedError
     
-    def setUp(self):
+    def setUp(self) -> None:
         self.data = self.create_data_structure()
         self.data_bounded = self.create_data_structure(maxsize=self.bounded_maxsize)

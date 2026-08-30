@@ -6,23 +6,23 @@ from .linear_basic_tests import TestLinear
 
 
 class BasicQueueTest(TestLinear):
-    def create_data_structure(self, *args, **kwargs) -> Queue[int]:
-        return Queue(*args, **kwargs)
+    def create_data_structure(self, *args: object, **kwargs: object) -> Queue[int]:
+        return Queue(*args, **kwargs)  # type: ignore
 
 
 class QueueTest(unittest.TestCase):
-    def setUp(self):
-        self.unbounded_q = Queue()
-        self.bounded_q = Queue(maxsize=3)
+    def setUp(self) -> None:
+        self.unbounded_q: Queue[int] = Queue()
+        self.bounded_q: Queue[str] = Queue(maxsize=3)
 
-    def test_enqueue_unbounded(self):
+    def test_enqueue_unbounded(self) -> None:
         self.unbounded_q.enqueue(1)
         self.unbounded_q.enqueue(2)
         self.assertEqual(self.unbounded_q.size(), 2)
         self.assertFalse(self.unbounded_q.empty())
         self.assertFalse(self.unbounded_q.full())
 
-    def test_enqueue_bounded(self):
+    def test_enqueue_bounded(self) -> None:
         self.bounded_q.enqueue("a")
         self.bounded_q.enqueue("b")
         self.bounded_q.enqueue("c")
@@ -31,7 +31,7 @@ class QueueTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.bounded_q.enqueue("d")
 
-    def test_dequeue(self):
+    def test_dequeue(self) -> None:
         self.unbounded_q.enqueue(10)
         self.unbounded_q.enqueue(20)
         self.assertEqual(self.unbounded_q.dequeue(), 10)  # FIFO
@@ -40,7 +40,7 @@ class QueueTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.unbounded_q.dequeue()  # now empty
 
-    def test_size(self):
+    def test_size(self) -> None:
         self.assertEqual(self.unbounded_q.size(), 0)
         for i in range(5):
             self.unbounded_q.enqueue(i)

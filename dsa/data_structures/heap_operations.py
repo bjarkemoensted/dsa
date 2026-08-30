@@ -2,6 +2,7 @@ import itertools
 import math
 from collections.abc import Callable, Iterator, Sequence
 from typing import (
+    Any,
     Protocol,
     TypeVar,
     overload,
@@ -17,10 +18,10 @@ class Comparable(Protocol):
     """This can be used as a constraint on a TypeVar to tell the type checker that
     a value will be of a type which supports comparison operators"""
 
-    def __lt__(self, other) -> bool: ...
-    def __le__(self, other) -> bool: ...
-    def __gt__(self, other) -> bool: ...
-    def __ge__(self, other) -> bool: ...
+    def __lt__(self, other: Any) -> bool: ...
+    def __le__(self, other: Any) -> bool: ...
+    def __gt__(self, other: Any) -> bool: ...
+    def __ge__(self, other: Any) -> bool: ...
 
 
 C = TypeVar("C", bound=Comparable)
@@ -71,7 +72,7 @@ def iterate_levels(size: int) -> Iterator[list[int]]:
         current = [child for child in child_inds if child < size]
 
 
-def _represent_binary_tree_as_ascii(A: list, padding=" ") -> str:
+def _represent_binary_tree_as_ascii(A: list, padding: str=" ") -> str:
     """Represents a binary tree as ASCII.
     Works by defining an empty line for each level in the tree, then representing the root
     at the middle of the topmost row, then repeatedly adding left and right children at the
@@ -123,7 +124,11 @@ def _represent_binary_tree_as_ascii(A: list, padding=" ") -> str:
 def _satisfies_heap_property[T, C](A: Sequence[T], *, min_heap: bool=..., key: Callable[[T], C]) -> bool: ...
 @overload
 def _satisfies_heap_property[C](A: Sequence[C], *, min_heap: bool=..., key: None=...) -> bool: ...
-def _satisfies_heap_property(A: Sequence, min_heap=MIN_HEAP_DEFAULT, key=None):
+def _satisfies_heap_property[T, C](
+        A: Sequence[T],
+        min_heap: bool=MIN_HEAP_DEFAULT,
+        key: Callable[[T], C]|None=None
+        ) -> bool:
     """Checks if a sequence of values satisfies the heap property: parent <= child for all parent/child pairs.
     The property is checked for all elements."""
     
@@ -132,6 +137,8 @@ def _satisfies_heap_property(A: Sequence, min_heap=MIN_HEAP_DEFAULT, key=None):
     
     for parent, child in iterate_parent_child_pairs(len(A)):
         a, b = (A[parent], A[child]) if key is None else (key(A[parent]), key(A[child]))
+        assert isinstance(a, Comparable)
+        assert isinstance(b, Comparable)
         pair_sat = a <= b if min_heap else a >= b
         if not pair_sat:
             return False
@@ -139,10 +146,23 @@ def _satisfies_heap_property(A: Sequence, min_heap=MIN_HEAP_DEFAULT, key=None):
     return True
 
 @overload
-def _restore_downwards[T, C](A: list[T], i: int, *, stopat: int=..., min_heap: bool=..., key: Callable[[T], C]) -> None: ...
+def _restore_downwards[T, C](
+    A: list[T],
+    i: int,
+    *,
+    stopat: int=...,
+    min_heap: bool=...,
+    key: Callable[[T], C]
+    ) -> None: ...
 @overload
 def _restore_downwards[T](A: list[T], i: int, *, stopat: int=..., min_heap: bool=...) -> None: ...
-def _restore_downwards(A: list, i: int, stopat: int=-1, min_heap=MIN_HEAP_DEFAULT, key=None):
+def _restore_downwards[T, C](
+        A: list[T],
+        i: int,
+        stopat: int=-1,
+        min_heap: bool=MIN_HEAP_DEFAULT,
+        key: Callable[[T], C]|None=None
+        ) -> None:
     """Assumes that child nodes of i already satisfy the heap property, but that the node at i
     might violate it.
     Allow the node to float down the heap, by swapping places with its largest child."""
@@ -157,6 +177,8 @@ def _restore_downwards(A: list, i: int, stopat: int=-1, min_heap=MIN_HEAP_DEFAUL
             if ci >= stopat:
                 continue
             a, b = (A[ci], A[best]) if key is None else (key(A[ci]), key(A[best]))
+            assert isinstance(a, Comparable)
+            assert isinstance(b, Comparable)
             child_is_better = a < b if min_heap else a > b
             if child_is_better:
                 best = ci
@@ -171,7 +193,12 @@ def _restore_downwards(A: list, i: int, stopat: int=-1, min_heap=MIN_HEAP_DEFAUL
 def _restore_upwards[T, C](A: list[T], i: int, *, min_heap: bool=..., key: Callable[[T], C]) -> None: ...
 @overload
 def _restore_upwards[C](A: list[C], i: int, *, min_heap: bool=..., key: None=...) -> None: ...
-def _restore_upwards(A: list, i: int, min_heap=MIN_HEAP_DEFAULT, key=None):
+def _restore_upwards[T, C](
+        A: list[T],
+        i: int,
+        min_heap: bool=MIN_HEAP_DEFAULT,
+        key: Callable[[T], C]|None=None
+        ) -> None:
     """Assumes that all parent nodes of i satisfy the heap property, but the element at i
     might violate it.
     Repeatedly swaps values with parent nodes until the heap property is restored."""
@@ -180,6 +207,8 @@ def _restore_upwards(A: list, i: int, min_heap=MIN_HEAP_DEFAULT, key=None):
         parent_ind = _parent(i)
         
         a, b = (A[i], A[parent_ind]) if key is None else (key(A[i]), key(A[parent_ind]))
+        assert isinstance(a, Comparable)
+        assert isinstance(b, Comparable)
         violated = a < b if min_heap else a > b
         if violated:
             A[i], A[parent_ind] = A[parent_ind], A[i]
@@ -191,7 +220,7 @@ def _restore_upwards(A: list, i: int, min_heap=MIN_HEAP_DEFAULT, key=None):
 def heapify[T, C](A: list[T], *, min_heap: bool=..., key: Callable[[T], C]) -> None: ...
 @overload
 def heapify[T](A: list[T], *, min_heap: bool=...) -> None: ...
-def heapify(A: list, min_heap=MIN_HEAP_DEFAULT, key=None):
+def heapify[T, C](A: list[T], min_heap: bool=MIN_HEAP_DEFAULT, key: Callable[[T], C]|None=None) -> None:
     """Turns input list into a heap"""
     for i in reversed(range(len(A) // 2)):
         if key is None:
@@ -201,10 +230,10 @@ def heapify(A: list, min_heap=MIN_HEAP_DEFAULT, key=None):
 
 
 @overload
-def heappush[T, C](A: list[T], item, *, min_heap: bool=..., key: Callable[[T], C]) -> None: ...
+def heappush[T, C](A: list[T], item: T, *, min_heap: bool=..., key: Callable[[T], C]) -> None: ...
 @overload
-def heappush[T](A: list[T], item, *, min_heap: bool=..., key: None=...) -> None: ...
-def heappush(A: list, item, min_heap=MIN_HEAP_DEFAULT, key=None):
+def heappush[T](A: list[T], item: T, *, min_heap: bool=...) -> None: ...
+def heappush[T, C](A: list[T], item: T, min_heap: bool=MIN_HEAP_DEFAULT, key: Callable[[T], C]|None=None) -> None:
     """Push an element onto the heap. Assumes the heap property is already satisfied."""
     # Insert at the end
     A.append(item)
@@ -245,7 +274,7 @@ def heappop[T, C](
 def heapsort[T, C](A: list[T], key: Callable[[T], C]) -> None: ...
 @overload
 def heapsort[T](A: list[T]) -> None: ...
-def heapsort[T](A: list, key=None):
+def heapsort[T, C](A: list[T], key: Callable[[T], C]|None=None) -> None:
     """Sorts the input elements in-place, using the heapsort algorithm"""
     if key is None:
         heapify(A, min_heap=False)

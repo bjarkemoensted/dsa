@@ -12,14 +12,14 @@ class Nonterminal(NamedTuple):
 
     name: str
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return tuple.__hash__(self)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         # This is to avoid accidentally matching with a string
         return isinstance(other, Nonterminal) and tuple.__eq__(self, other)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.name
 
 # Types for sentences and sentential forms
@@ -31,9 +31,9 @@ type SentenceType = tuple[str, ...]
 type ProductionType = dict[Nonterminal, list[SententialType]]
 
 
-def is_sentential(obj) -> TypeGuard[SententialType]:
+def is_sentential(obj: object) -> TypeGuard[SententialType]:
     return isinstance(obj, tuple) and all(isinstance(elem, (str, Nonterminal)) for elem in obj)
 
 
-def is_sentence(obj) -> TypeGuard[SentenceType]:
+def is_sentence(obj: object) -> TypeGuard[SentenceType]:
     return isinstance(obj, tuple) and all(isinstance(elem, str) for elem in obj)

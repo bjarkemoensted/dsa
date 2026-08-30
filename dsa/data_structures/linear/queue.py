@@ -10,7 +10,9 @@ class Queue[T](BaseContainer):
     The invariants here are the pointers .tail and .head which refer to
     the next free slot, and the most recently inserted element, respectively (except when the
     queue is empty)."""
-    
+
+    arr: list[T|None]
+
     def __init__(self, maxsize: int=-1):
         super().__init__(maxsize=maxsize)
         
@@ -19,17 +21,17 @@ class Queue[T](BaseContainer):
         self.head = 0
         self.tail = 0
 
-    def _size(self):
+    def _size(self) -> int:
         return (self.tail - self.head) % len(self.arr)
     
-    def _grow_array(self):
+    def _grow_array(self) -> None:
         inds = ((self.head + i) % len(self.arr) for i in range(self.size()))
         vals = [self.arr[i] for i in inds]
         self.arr = [None for _ in range(2*self.size())]
         for i, val in enumerate(vals):
             self.arr[i] = val
     
-    def _put(self, item):
+    def _put(self, item: T) -> None:
         at_capacity = self.size() == len(self.arr) - 1
         if at_capacity:
             self._grow_array()
@@ -37,7 +39,7 @@ class Queue[T](BaseContainer):
         self.arr[self.tail] = item
         self.tail = (self.tail + 1) % len(self.arr)
     
-    def _get(self):
+    def _get(self) -> T:
         elem = self.arr[self.head]
         self.head = (self.head + 1) % len(self.arr)
         
@@ -48,8 +50,8 @@ class Queue[T](BaseContainer):
         res = [self.arr[i] for i in inds]
         return cast(list[T], res)
 
-    def enqueue(self, item: T):
+    def enqueue(self, item: T) -> None:
         self.put(item)
     
-    def dequeue(self):
+    def dequeue(self) -> T:
         return self.get()

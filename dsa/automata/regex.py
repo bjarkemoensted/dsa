@@ -6,7 +6,7 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field, fields
 from functools import singledispatchmethod
 from itertools import count
-from typing import ClassVar, Literal, Self, TypeIs, get_args
+from typing import Any, ClassVar, Literal, Self, TypeIs, get_args
 
 from dsa.automata.finite_state_machine import EPSILON, NFA, Epsilon
 
@@ -81,7 +81,7 @@ class Operator(ASTBaseNode):
     precedence: ClassVar[int]
     leaf: ClassVar[bool] = False
     
-    def __init_subclass__(cls, *, precedence: int, **kwargs) -> None:
+    def __init_subclass__(cls, *, precedence: int, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
         cls.precedence = precedence
 
@@ -307,27 +307,27 @@ class Constructor[Q]:
         We raise an error if an unregistered node class is encountered"""
         raise NotImplementedError(f"No dispatch method registered for {type(node)}")
 
-    def empty_fragment(self):
+    def empty_fragment(self) -> Fragment[Q, Any]:
         """Make an empty fragment (with no transition rules)"""
         u = next(self.node_generator)
         v = next(self.node_generator)
-        res = Fragment(initial_state=u, final_state=v)
+        res: Fragment[Q, object] = Fragment(initial_state=u, final_state=v)
         return res
 
     @construct_fragment.register
-    def _(self, node: LiteralNode):
+    def _(self, node: LiteralNode) -> Fragment:
         # Construct a fragment for a literal node
         res = self.empty_fragment()
         res.add_transition(u=res.initial_state, v=res.final_state, char=node.value)
         return res
 
     @construct_fragment.register
-    def _(self, node: Union):
+    def _(self, node: Union) -> Fragment:
         # Construct fragments for the left and right sides of the union
         left = self.construct_fragment(node.left)
         right = self.construct_fragment(node.right)
 
-        res = self.empty_fragment()
+        res: Fragment = self.empty_fragment()
         res.transitions |= (left.transitions | right.transitions)
 
         # Run left/right in parallel - connect start and end to both
@@ -338,7 +338,7 @@ class Constructor[Q]:
         return res
 
     @construct_fragment.register
-    def _(self, node: Concat):
+    def _(self, node: Concat) -> Fragment:
         # Construct fragments for the left and right sides of the concatenation
         left = self.construct_fragment(node.left)
         right = self.construct_fragment(node.right)
@@ -353,7 +353,7 @@ class Constructor[Q]:
         return res
 
     @construct_fragment.register
-    def _(self, node: Star):
+    def _(self, node: Star) -> Fragment:
         outer = self.empty_fragment()
         # Construct fragment for the inner expression (which the Kleene star repeats)
         inner = self.construct_fragment(node.expr)
@@ -372,7 +372,7 @@ class Constructor[Q]:
         return outer
 
     @construct_fragment.register
-    def _(self, node: Empty):
+    def _(self, node: Empty) -> Fragment:
         res = self.empty_fragment()
         # Add an epsilon-transition from start -> accept
         res.add_transition(u=res.initial_state, v=res.final_state)

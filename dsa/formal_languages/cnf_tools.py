@@ -50,7 +50,7 @@ def get_useless_symbols(G: CFG) -> list[Nonterminal]:
     return sorted(useless)
 
 
-def grammar_is_cnf(G: CFG, allow_empty_string_from_start=True) -> bool:
+def grammar_is_cnf(G: CFG, allow_empty_string_from_start: bool=True) -> bool:
     """Determines whether a grammar is CNF.
     Following Hopcroft & Ullman, CNF is defined as:
     1) No 'useless symbols' (nonterminals that are unreachable or have no productions)
@@ -92,7 +92,7 @@ class SymbolGenerator:
     This is basically just to keep the logic for, given variables like X, X_1, ...,
     to be able to generate distinct names, with incrementing suffixes."""
 
-    def __init__(self, nonterms: Iterable[Nonterminal], separator="_") -> None:
+    def __init__(self, nonterms: Iterable[Nonterminal], separator: str="_") -> None:
         """nonterms: iterable of non-terminals which we'll be renaming
         separator: string for separating a nonterminal's base name from its numeric suffix.
             e.g. 'X_1' (base name 'X', suffix 1)"""
@@ -178,7 +178,8 @@ def _inline_nullable_powerset(rule: list[SententialType], nullable: set[Nontermi
         A → BB | B | ε
         B → c
     
-    (BB is not yielded because it is already present. B is only yielded once even though it can be generated in two ways, i.e.
+    (BB is not yielded because it is already present.
+    B is only yielded once even though it can be generated in two ways, i.e.
     by keeping the first or last instance of B)."""
     
     seen = set(rule)
