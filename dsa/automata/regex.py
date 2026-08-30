@@ -16,7 +16,7 @@ class ParseError(Exception):
 
 
 # Special characters for regular expressions
-type SpecialChar = Literal["(", ")", "*", "|", "+"]
+type SpecialChar = Literal["(", ")", "*", "|", "+", "?"]
 _special_chars = set(get_args(SpecialChar.__value__))
 
 
@@ -27,6 +27,7 @@ class Symbol(StrEnum):
     PLUS = "+"
     UNION = "|"
     CONCATENATION = "·"
+    QUESTION = "?"
 
 
 def is_special(char: object) -> TypeIs[SpecialChar]:
@@ -80,6 +81,7 @@ _specialtokens = (
     OperatorToken(Symbol.CONCATENATION, 2, 2, concat_right=False, recognize=False),
     OperatorToken(Symbol.STAR, 1, 3),
     OperatorToken(Symbol.PLUS, 1, 3),
+    OperatorToken(Symbol.QUESTION, 1, 3),
 )
 
 
@@ -377,6 +379,19 @@ class Constructor[Q, S]:
         outer.add_transition(inner.final_state, outer.final_state)
         return outer
 
+    def question(self, node: Node[S]) -> Fragment[Q, S]:
+        """Constructs a fragment for the optional quantifier ?, e.g. 'a?' means 'a' zero or one times"""
+        outer = self.empty_fragment()
+        expr, = node.children
+        inner = self.construct_fragment(expr)
+        outer.transitions |= inner.transitions
+
+        outer.add_transition(outer.initial_state, inner.initial_state)
+        outer.add_transition(outer.initial_state, outer.final_state)
+        outer.add_transition(inner.final_state, outer.final_state)
+
+        return outer
+
     def empty(self) -> Fragment[Q, S]:
         """Construct a fragment to match only the empty string"""
         res = self.empty_fragment()
@@ -407,6 +422,8 @@ class Constructor[Q, S]:
                 return self.star(node)
             case Symbol.PLUS:
                 return self.plus(node)
+            case Symbol.QUESTION:
+                return self.question(node)
             case _:
                 raise ValueError(f"Unknown special symbol: {node.symbol!r}")
         raise NotImplementedError

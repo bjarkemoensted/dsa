@@ -121,7 +121,7 @@ class NFA[Q, S](AutomatonBase):
 
     def display_transitions(self) -> None:
         """Helper method for displaying the transitions in a somewhat easy to read format"""
-        for (u, c), targets in sorted(self.transitions.items()):
+        for (u, c), targets in sorted(self.transitions.items(), key=str):
             s = f"   {u} "
             if u == self.initial_state:
                 s = f"-> {u} "
