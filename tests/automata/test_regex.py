@@ -1,11 +1,12 @@
 import re
 import unittest
+from functools import cache
 from itertools import product
+from typing import Sequence
 
 from dsa.automata import regex
 
-patterns = (
-    '',
+simple_patterns = (
     'a',
     'b',
     'ab',
@@ -13,37 +14,50 @@ patterns = (
     'abc',
     'a|b',
     'ab|cd',
-    'a*',
-    'b+',
-    'a?',
-    'a+',
+    'a*b',
+    'ab*',
+)
+
+parenthesis = (
     '(a)',
     '(ab)',
     '(a|b)',
     '(a|b)*',
     'a(a|b)*',
     '(ab)*',
-    '(ab)+',
-    'a+b',
-    'a*b',
-    'ab*',
 )
 
-MAX_STRING_LENGTH = 6
-letters = list("abcd")
-strings = [''.join(p) for k in range(MAX_STRING_LENGTH + 1) for p in product(letters, repeat=k)]
+more_operators = (
+    'a?',
+    'b*',
+    'a+',
+    '(ab)+',
+    'a+b',
+)
+
+
+
+@cache
+def make_strings(alphabet: Sequence[str]="abcd", length: int=6) -> list[str]:
+    res = [''.join(p) for k in range(length + 1) for p in product(alphabet, repeat=k)]
+    return res
 
 
 class TestRegex(unittest.TestCase):
-    def test_parsing(self) -> None:
+    def check_parsing(self, patterns: Sequence[str]) -> None:
         """Check that valid regexes can be parsed to an AST"""
         for pattern in patterns:
             ast = regex.Parser(pattern).parse()
             self.assertIsInstance(ast, regex.BaseNode)
 
-    def test_accept(self) -> None:
+    def compare(self, patterns: Sequence[str], alphabet: Sequence[str]="abcd", length: int=6) -> None:
         """Test that converting REs into NFAs gives the same accepted/rejected strings as the built-in
         re library"""
+
+        self.check_parsing(patterns)
+
+        strings = make_strings(alphabet, length)
+        some_matched = False
 
         for pattern in patterns:
             compiled = re.compile(pattern)
@@ -58,6 +72,29 @@ class TestRegex(unittest.TestCase):
                     is_match,
                     f"Check if pattern '{pattern}' matches string '{s}'."
                 )
+                if is_match:
+                    some_matched = True
+                #
+            #
+        
+        if not some_matched:
+            raise RuntimeError("No strings matched any pattern.")
+
+    def test_simple_patterns(self) -> None:
+        self.compare(simple_patterns, "abcd")
+
+    def test_empty(self) -> None:
+        self.compare([""], "abc")
+
+    def test_parentheses(self) -> None:
+        self.compare(parenthesis, "ab")
+
+    def test_more_operators(self) -> None:
+        self.compare(more_operators, "ab")
+
+    def test_escape_chars(self) -> None:
+        patterns = (r"a\(b", r"ab\*", r"\\\\")
+        self.compare(patterns, "ab()\\*")
     
     def test_parser_implicit_concatenation(self) -> None:
         """Checks that the regex parser correctly inserts implicit concatenation where appropriate"""

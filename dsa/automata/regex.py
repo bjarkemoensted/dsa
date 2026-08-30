@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import singledispatchmethod
 from itertools import count
-from typing import Literal, Self, TypeIs, get_args
+from typing import Literal, Self, TypeIs, cast, get_args
 
 from dsa.automata.finite_state_machine import EPSILON, NFA, Epsilon
 
@@ -28,6 +28,7 @@ class Symbol(StrEnum):
     UNION = "|"
     CONCATENATION = "·"
     QUESTION = "?"
+    ESCAPE = "\\"
 
 
 def is_special(char: object) -> TypeIs[SpecialChar]:
@@ -146,15 +147,19 @@ class Parser[T]:
         # Stores nodes in the abstract syntax tree
         self.ast_nodes: list[BaseNode[T]] = []
 
-    def peek(self) -> Token[T]|SpecialToken:
-        """Returns the current token in the expression"""
+    def peek(self) -> tuple[Token[T]|SpecialToken, int]:
+        """Returns the current token in the expression, and the length to skip forward
+        to reach the next one. This is to allow e.g. escape characters to work"""
 
         char = self.expr[self.idx]
-        
+
+        if char == Symbol.ESCAPE:
+            escaped = cast(T, self.expr[self.idx + 1])
+            return Token(escaped), 2
         if is_special(char):
-            return self.SPECIAL_CHARS[char]
+            return self.SPECIAL_CHARS[char], 1
         else:
-            return Token(char)
+            return Token(char), 1
 
     def make_ast_node(self, token: Token[T]|OperatorToken) -> None:
         """Creates a new node in the AST from a token.
@@ -216,8 +221,7 @@ class Parser[T]:
             case Symbol.PARENTHESIS_CLOSE:
                 self._match_bracket()
             case _:
-                raise ValueError(f"Could not process: {token}")
-        
+                raise ValueError(f"Could not process: {token}")     
 
     def process_expression(self) -> None:
         """Processes the expression stored in the parser.
@@ -230,8 +234,7 @@ class Parser[T]:
 
         attempt_concat = False
         while self.idx < len(self.expr):
-            
-            token = self.peek()
+            token, skip = self.peek()
             implicit_concatenation = attempt_concat and token.concat_left
             if implicit_concatenation:
                 _concat_token = self.SPECIAL_CHARS[Symbol.CONCATENATION]
@@ -239,7 +242,7 @@ class Parser[T]:
 
             self.process_token(token)
             attempt_concat = token.concat_right
-            self.idx += 1
+            self.idx += skip
 
         while self.operator_stack:
             top = self.operator_stack.pop()
