@@ -73,5 +73,5 @@ class TestRegex(unittest.TestCase):
             with self.subTest(pattern=pattern):
                 parser = regex.Parser(pattern)
                 ast = parser.parse()
-                n = sum(isinstance(node, regex.Node) and node.symbol == "·" for node in ast)
+                n = sum(isinstance(node, regex.Node) and node.symbol == regex.Symbol.CONCATENATION for node in ast)
                 self.assertEqual(n, n_concats, f"Error parsing {pattern}: {n} != {n_concats}")

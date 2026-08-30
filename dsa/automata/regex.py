@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
+from enum import StrEnum
 from functools import singledispatchmethod
 from itertools import count
 from typing import Literal, Self, TypeIs, get_args
@@ -17,6 +18,15 @@ class ParseError(Exception):
 # Special characters for regular expressions
 type SpecialChar = Literal["(", ")", "*", "|", "+"]
 _special_chars = set(get_args(SpecialChar.__value__))
+
+
+class Symbol(StrEnum):
+    PARENTHESIS_OPEN = "("
+    PARENTHESIS_CLOSE = ")"
+    STAR = "*"
+    PLUS = "+"
+    UNION = "|"
+    CONCATENATION = "·"
 
 
 def is_special(char: object) -> TypeIs[SpecialChar]:
@@ -62,15 +72,14 @@ class OperatorToken(SpecialToken):
     concat_right: bool = field(default=True, kw_only=True)
 
 
-_concat_token = OperatorToken("·", 2, 2, concat_right=False, recognize=False)
 _specialtokens = (
-    SpecialToken("(", concat_right=False),
-    SpecialToken(")", concat_left=False),
-    OperatorToken("|", 2, 1, concat_right=False),
+    SpecialToken(Symbol.PARENTHESIS_OPEN, concat_right=False),
+    SpecialToken(Symbol.PARENTHESIS_CLOSE, concat_left=False),
+    OperatorToken(Symbol.UNION, 2, 1, concat_right=False),
     # Concatenation. There's no standard symbol for it, so don't attempt to read in from raw regex
-    _concat_token,
-    OperatorToken("*", 1, 3),
-    OperatorToken("+", 1, 3),
+    OperatorToken(Symbol.CONCATENATION, 2, 2, concat_right=False, recognize=False),
+    OperatorToken(Symbol.STAR, 1, 3),
+    OperatorToken(Symbol.PLUS, 1, 3),
 )
 
 
@@ -188,7 +197,7 @@ class Parser[T]:
             if isinstance(top, OperatorToken):
                 self.make_ast_node(top)
             elif isinstance(top, SpecialToken):
-                if top.value != "(":
+                if top.value != Symbol.PARENTHESIS_OPEN:
                     raise ValueError
                 return
             else:
@@ -200,9 +209,9 @@ class Parser[T]:
     def _(self, token: SpecialToken) -> None:
         """Process a special token - not an operator but e.g. parentheses"""
         match token.value:
-            case "(":
+            case Symbol.PARENTHESIS_OPEN:
                 self.operator_stack.append(token)
-            case ")":
+            case Symbol.PARENTHESIS_CLOSE:
                 self._match_bracket()
             case _:
                 raise ValueError(f"Could not process: {token}")
@@ -223,6 +232,7 @@ class Parser[T]:
             token = self.peek()
             implicit_concatenation = attempt_concat and token.concat_left
             if implicit_concatenation:
+                _concat_token = self.SPECIAL_CHARS[Symbol.CONCATENATION]
                 self.process_token(_concat_token)
 
             self.process_token(token)
@@ -389,13 +399,13 @@ class Constructor[Q, S]:
             raise TypeError(f"Invalid node type: {type(node)}")
 
         match node.symbol:
-            case "|":
+            case Symbol.UNION:
                 return self.union(node)
-            case "·":
+            case Symbol.CONCATENATION:
                 return self.concatenate(node)
-            case "*":
+            case Symbol.STAR:
                 return self.star(node)
-            case "+":
+            case Symbol.PLUS:
                 return self.plus(node)
             case _:
                 raise ValueError(f"Unknown special symbol: {node.symbol!r}")
