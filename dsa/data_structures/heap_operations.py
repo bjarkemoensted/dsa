@@ -2,26 +2,14 @@ import itertools
 import math
 from collections.abc import Callable, Iterator, Sequence
 from typing import (
-    Any,
-    Protocol,
     TypeVar,
     overload,
-    runtime_checkable,
 )
+
+from dsa.utils.types import Comparable
 
 # Whether to default to using min-heaps (set to False to use max-heap as default)
 MIN_HEAP_DEFAULT: bool = True
-
-
-@runtime_checkable
-class Comparable(Protocol):
-    """This can be used as a constraint on a TypeVar to tell the type checker that
-    a value will be of a type which supports comparison operators"""
-
-    def __lt__(self, other: Any) -> bool: ...
-    def __le__(self, other: Any) -> bool: ...
-    def __gt__(self, other: Any) -> bool: ...
-    def __ge__(self, other: Any) -> bool: ...
 
 
 C = TypeVar("C", bound=Comparable)

@@ -9,10 +9,10 @@ from collections.abc import Callable, Iterable
 
 from dsa.data_structures.heap_operations import (
     MIN_HEAP_DEFAULT,
-    Comparable,
     _represent_binary_tree_as_ascii,
     iterate_parent_child_pairs,
 )
+from dsa.utils.types import Comparable
 
 
 class Comparison[T]:
