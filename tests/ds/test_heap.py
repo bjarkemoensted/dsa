@@ -19,7 +19,8 @@ class TestHeap(unittest.TestCase):
         heap_operations.heapify(self.vals_heap, min_heap=self.min_heap)
     
     def heap_property_satisfied(self, vals: list[int]) -> bool:
-        res = heap_operations._satisfies_heap_property(vals, min_heap=self.min_heap)
+        constraint = heap_operations.make_constraint(min_heap=self.min_heap)
+        res = heap_operations._satisfies_heap_property(vals, constraint)
         return res
     
     def test_satisfy_heap_prop_function(self) -> None:
@@ -97,21 +98,21 @@ class TestHeapClass(unittest.TestCase):
         return super().setUp()
     
     def test_heap_property(self) -> None:
-        self.assertTrue(self.heap._satisfies_heap_invariant())
+        self.assertTrue(self.heap._invariant_satisfied())
     
     def test_push(self) -> None:
         n_items = len(self.heap)
         for val in make_integers(seed=1337):
             self.heap.push(val)
-            self.assertTrue(self.heap._satisfies_heap_invariant())
+            self.assertTrue(self.heap._invariant_satisfied())
             n_items += 1
             self.assertEqual(n_items, len(self.heap))
     
     def test_pop(self) -> None:
         for _ in range(len(self.heap)):
             val = self.heap.pop()
-            self.assertTrue(all(self.heap.comp(val, other) for other in self.heap.A))
-            self.assertTrue(self.heap._satisfies_heap_invariant())
+            self.assertTrue(all(self.heap.constraint(val, other) for other in self.heap.A))
+            self.assertTrue(self.heap._invariant_satisfied())
         
         self.assertRaises(IndexError, self.heap.pop)
     
