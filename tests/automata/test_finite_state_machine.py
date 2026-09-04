@@ -1,10 +1,11 @@
 import unittest
 from collections.abc import Sequence
 from itertools import product
+from typing import Any
 
 from dsa.automata.finite_state_machine import DFA, EPSILON, NFA, AutomatonBase
 
-dfa_kwargs_1 = {
+dfa_kwargs_1: dict[str, Any] = {
     "states": {"q1", "q2"},
     "alphabet": {0, 1},
     "transitions": {
@@ -17,7 +18,7 @@ dfa_kwargs_1 = {
     "final_states": {"q2"},
 }
 
-dfa1: DFA[str, int] = DFA(**dfa_kwargs_1) #  type: ignore
+dfa1: DFA[str, int] = DFA(**dfa_kwargs_1)
 
 kwargs = dfa_kwargs_1.copy()
 transitions = dfa_kwargs_1["transitions"]
@@ -42,14 +43,15 @@ class TestDFA(unittest.TestCase):
             self.assertIs(accepted, valid)
     
     def test_invalid_machine_raises_error(self) -> None:
-        invalid_kwargs = [
+        invalid_kwargs: list[dict[str, Any]] = [
             {"final_states": {"x",}},
             {"initial_state": 99}
         ]
 
         for d in invalid_kwargs:
             with self.assertRaises(RuntimeError):
-                DFA(**(dfa_kwargs_1 | d))  # type: ignore
+                new_kwargs: dict[str, Any] = dfa_kwargs_1 | d
+                DFA(**new_kwargs)
     
     def test_nfa_acceptance(self) -> None:
         """Check that an NFA whivc gives sets of single states accepts the same
@@ -66,7 +68,7 @@ class TestDFA(unittest.TestCase):
 
 
 # NFA N1 (example 1.38 in Sipser) - accepts strings w. 101 or 11 as a substring
-nfa_kwargs_1 = {
+nfa_kwargs_1: dict[str, Any] = {
     "states": {"q1", "q2", "q3", "q4"},
     "alphabet": {0, 1},
     "transitions": {
@@ -96,7 +98,7 @@ def _is_sub_tuple[T](a: tuple[T, ...], b: tuple[T, ...]) -> bool:
     return False
 
 
-NFA1 = NFA(**nfa_kwargs_1)  # type: ignore
+NFA1: NFA[str, int] = NFA(**nfa_kwargs_1)
 
 nfa1_cases = (
     (elem, any(_is_sub_tuple(pattern, elem) for pattern in ((1, 0, 1), (1, 1))) )

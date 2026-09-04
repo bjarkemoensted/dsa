@@ -19,6 +19,10 @@ dependencies = [
     "pytest>=8.4.2,<9",
 ]
 
+[tool.pyright]
+reportUnnecessaryTypeIgnoreComment = "error"
+reportMissingTypeStubs = "error"
+
 [dependency-groups]
 dev = [
     "line-profiler>=5.0.2",
