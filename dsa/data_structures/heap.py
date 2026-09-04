@@ -23,6 +23,7 @@ class Heap[T]:
     A: list[T]
     constraint: Comparison[T]
 
+    # The overloads influence the return type, so we have to overload __new__ rather than __init__ here
     @overload
     def __new__[C: Comparable](cls, values: Iterable[C], min_heap: bool = ..., key: None = ...) -> Heap[C]: ...
     @overload
