@@ -1,3 +1,4 @@
+# Add code here for type checking.
 from dsa.data_structures.heap import Heap
 from dsa.data_structures.heap_operations import heapify, heappop, heappush, heapsort
 

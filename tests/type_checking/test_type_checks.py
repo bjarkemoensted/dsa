@@ -1,3 +1,14 @@
+# Runs type checking on files in this directory.
+# A pytest runs pyright on the contents, raising errors on any
+# non-ignored errors, and on unused errors.
+# To check that something does not cause a type error, just add it to a python file
+# in this folder, and a subtest will run pyright on it, with type errors causing the
+# pytest to fail.
+# To verify that type errors ARE raised (e.g. if checking that some overloads work as expected),
+# add the hopefully offending line, appended with e.g. '# type: ignore'.
+# Pyright is run so that it raise errors on unused ignores, so this will catch cases were
+# we expect an error but none is raised 
+
 import subprocess
 import sys
 import unittest
@@ -12,11 +23,9 @@ def get_test_files() -> tuple[Path, ...]:
     return res
 
 
-def check_path(path: Path, warn_on_unused_ignores: bool=True) -> subprocess.CompletedProcess:
+def check_path(path: Path) -> subprocess.CompletedProcess:
     """Runs mypy on the specified file"""
-    args = [sys.executable, "-m", "mypy"]
-    if warn_on_unused_ignores:
-        args.append("--warn-unused-ignores")
+    args = [sys.executable, "-m", "pyright"]
 
     args.append(str(path))
     result = subprocess.run(
