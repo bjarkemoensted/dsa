@@ -1,5 +1,5 @@
 """Stores common types used in the project"""
-from typing import Any, Callable, Protocol, runtime_checkable
+from typing import Any, Callable, Iterable, Optional, overload, Protocol, runtime_checkable
 
 # Some relational comparison of 2 elements, e.g. <, >, etc
 type Comparison[T] = Callable[[T, T], bool]
@@ -17,3 +17,13 @@ class Comparable(Protocol):
     def __gt__(self, other: Any, /) -> bool: ...
     def __ge__(self, other: Any, /) -> bool: ...
     def __eq__(self, other: Any, /) -> bool: ...
+
+
+class Sorter(Protocol):
+    def __call__[T, C: Comparable](
+            self,
+            A: Iterable[T],
+            key: Optional[Conversion[T, C]]=None,
+            reverse: bool=False,
+            **kwargs: Any
+        ) -> list[T]: ...
