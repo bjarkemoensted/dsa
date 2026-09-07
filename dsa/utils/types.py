@@ -1,5 +1,5 @@
 """Stores common types used in the project"""
-from typing import Any, Callable, Iterable, Optional, overload, Protocol, runtime_checkable
+from typing import Any, Callable, Iterable, Optional, Protocol, runtime_checkable
 
 # Some relational comparison of 2 elements, e.g. <, >, etc
 type Comparison[T] = Callable[[T, T], bool]
