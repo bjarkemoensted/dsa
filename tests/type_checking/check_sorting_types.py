@@ -1,14 +1,7 @@
 # Add code here for type checking.
 from dsa.sorting.quicksort import quicksort
 
-
-class NonComparable:
-    def __init__(self, value: int) -> None:
-        self.value = value
-
-
-def key(elem: NonComparable) -> int:
-    return elem.value
+from ..utils import NonComparable
 
 
 def intkey(elem: int) -> int:
@@ -24,7 +17,7 @@ list_noncom = [NonComparable(val) for val in list_int]
 quicksort(list_int)
 quicksort(list_int, key=None)
 quicksort(list_str)
-quicksort(list_noncom, key=key)
+quicksort(list_noncom, key=NonComparable.value_key)
 quicksort(list_int, key=intkey)
 # These should not
 quicksort(list_noncom)  # type: ignore

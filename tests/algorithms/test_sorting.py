@@ -1,19 +1,33 @@
-import random
 import unittest
-from typing import Any, Callable, Iterable, cast, get_args
+from copy import deepcopy
+from typing import Any, Callable, Iterable, Protocol, cast, get_args
 
-from dsa.sorting import quicksort
+from dsa.sorting import quicksort, sorter_class
+from dsa.utils.randomization import make_random_state
 from dsa.utils.types import Comparable, Conversion
 
+from ..utils import NonComparable, make_integers
 
-def make_example_data(n_examples: int=20, n_elements: int=100, seed: int=0) -> list[list[int]]:
-    rs = random.Random()
-    rs.seed(seed)
-    res = [
-        [rs.randint(-100, 100) for _ in range(n_elements)]
-        for _ in range(n_examples)
-    ]
-    return res
+
+class SortFunc[**P](Protocol):
+    """Represents a generic sorting function.
+    This is just to be able to type hint builtin sorted along with Sorter instances"""
+    def __call__[T](
+        self,
+        A: list[T],
+        key: Callable|None=None,
+        reverse: bool=False,
+        *args: P.args,
+        **kwargs: P.kwargs
+    ) -> list[T]: ...
+
+
+def _default_sort[T](A: list[T], key: Callable|None=None, reverse: bool=False) -> list[T]:
+    if key is None:
+        res = sorted(cast(Iterable[Comparable], A), reverse=reverse)
+        return cast(list[T], res)
+    else:
+        return sorted(A, key=key, reverse=reverse)
 
 
 def int_key(value: int) -> tuple[int, int]:
@@ -23,17 +37,14 @@ def int_key(value: int) -> tuple[int, int]:
 
 class TestSorting(unittest.TestCase):
     data: list[list[int]]
-
-    @staticmethod
-    def sort[T](A: list[T], key: Callable|None=None, reverse: bool=False) -> list[T]:
-        if key is None:
-            res = sorted(cast(Iterable[Comparable], A), reverse=reverse)
-            return cast(list[T], res)
-        else:
-            return sorted(A, key=key, reverse=reverse)
+    sort: SortFunc|sorter_class.Sorter = staticmethod(_default_sort)
         
     def setUp(self) -> None:
-        self.data = make_example_data() + []
+        rs = make_random_state(0)
+        edge_cases = [[], [1], [1, 2]]
+        cases = [make_integers() for _ in range(100)]
+        self.data = cases + edge_cases
+        self.noncom_data = [[NonComparable(value=n, other_value=rs.randint(0, 10)) for n in case] for case in cases]
         return super().setUp()
 
     def check_sorted[T](self, A: list[T], key: Conversion[T, Any]|None=None, reverse: bool=False) -> None:
@@ -56,23 +67,58 @@ class TestSorting(unittest.TestCase):
         for numbers in self.data:
             self.check_sorted(self.sort(numbers))
 
-    def test_key_sorting(self) -> None:
+    def test_key_sorting_int(self) -> None:
         for numbers in self.data:
             ordered = self.sort(numbers, key=int_key)
             self.check_sorted(ordered, key=int_key)
 
+    def test_key_sorting_noncomparable(self) -> None:
+        """Check that sorting non-comparables works with an appropriate key function"""
+        for objects in self.noncom_data:
+            ordered = self.sort(objects, key=NonComparable.value_key)
+            self.check_sorted(ordered, key=NonComparable.value_key)
+
 
 class TestQuickSort(TestSorting):
-    sorter = quicksort.quicksort
+    sort = quicksort.quicksort
 
     def test_standard_sorting(self) -> None:
         for numbers in self.data:
-            self.check_sorted(self.sorter(numbers))
+            self.check_sorted(self.sort(numbers))
         #
     
     def test_pivot_strategies(self) -> None:
         for strategy in get_args(quicksort.PivotStrategy.__value__):
             print(strategy)
             for numbers in self.data:
-                sorted_ = self.sorter(numbers, pivot_strategy=strategy)
+                sorted_ = self.sort(numbers, pivot_strategy=strategy)
                 self.check_sorted(sorted_)
+
+    def test_random_seed_affects_sorting(self) -> None:
+        """Run quicksort on non-comparables with the same value (which randomises the
+        final order). Check that different random seeds result in different final orderings"""
+
+        rs = make_random_state(0)
+        n = 1000
+        elems = [NonComparable(value=0, other_value = rs.randint(0, 100)) for _ in range(n)]
+
+        def sort_(seed: int|None) -> list[int]:
+            """Sorts the non-comparables according to .value.
+            Returns a list of the .other_value of each element,
+            in the sorted order."""
+            A = deepcopy(elems)
+            _ordered = self.sort(
+                A=A,
+                key=NonComparable.value_key,
+                pivot_strategy="random",
+                seed=seed
+            )
+            return [elem.other_value for elem in _ordered]
+        
+        # We should get the same order when using the same seed
+        self.assertListEqual(sort_(1), sort_(1))
+        # Using different seeds or None (for large lists) should give difference orderings
+        self.assertNotEqual(sort_(1), sort_(2))
+        self.assertNotEqual(sort_(None), sort_(None))
+        
+        

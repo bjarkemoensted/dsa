@@ -1,13 +1,13 @@
 from typing import Literal
 
 from dsa.sorting.sorter_class import Sorter
+from dsa.utils.randomization import RandomSeeder, make_random_state
 from dsa.utils.types import Comparison
 
-# TODO enable random strategy
-type PivotStrategy = Literal["first", "last", "median"]
+type PivotStrategy = Literal["first", "last", "median", "random"]
 
 
-def _determine_pivot_index(p: int, r: int, strategy: PivotStrategy) -> int:
+def _determine_pivot_index(p: int, r: int, strategy: PivotStrategy, seed: RandomSeeder=None) -> int:
     """r is the greatest index allowed, e.g. len(A) - 1"""
     match strategy:
         case "last":
@@ -16,6 +16,9 @@ def _determine_pivot_index(p: int, r: int, strategy: PivotStrategy) -> int:
             return p
         case "median":
             return (r + p) // 2
+        case "random":
+            rs = make_random_state(seed)
+            return rs.randint(p, r)
         case _:
             raise ValueError(f"Unsupported pivot strategy: {strategy!r}")
 
@@ -26,10 +29,11 @@ def _swap(A: list, i: int, j: int) -> None:
 
 def _partition[T](
         A: list[T],
+        constraint: Comparison[T],
         p: int,
         r: int,
         pivot_strategy: PivotStrategy,
-        constraint: Comparison[T]
+        seed: RandomSeeder
         ) -> int:
     """Partitions a subarray in-place so that all elements left of a pivot index i
     are <= the pivot, and elements to the right are >= the pivot.
@@ -42,7 +46,7 @@ def _partition[T](
     A[j:r] not yet processed
     """
 
-    pivot_ind = _determine_pivot_index(p, r, pivot_strategy)
+    pivot_ind = _determine_pivot_index(p, r, pivot_strategy, seed=seed)
     _swap(A, r, pivot_ind)
 
     i = p - 1
@@ -63,7 +67,8 @@ def quicksort[T](
         constraint: Comparison[T],
         p: int=0,
         r: int|None=None,
-        pivot_strategy: PivotStrategy="median",
+        pivot_strategy: PivotStrategy="random",
+        seed: RandomSeeder=None
         ) -> None:
     """Quicksort algorithm. Follows CLRS except
     1) Uses a general constraint function which must return True for subsequent elements if ordered, and
@@ -82,7 +87,14 @@ def quicksort[T](
             continue
 
         # Partition current region around the pivot value
-        q = _partition(A, p_, r_, pivot_strategy, constraint)
+        q = _partition(
+            A=A,
+            constraint=constraint,
+            p=p_,
+            r=r_,
+            pivot_strategy=pivot_strategy,
+            seed=seed
+        )
         # Add regions to the left and right of the final pivot location to the stack
         remaining.append((p_, q-1))
         remaining.append((q+1, r_))
