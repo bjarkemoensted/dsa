@@ -277,22 +277,3 @@ def heappop[T, C](
     constraint = make_constraint(min_heap=min_heap, key=key)
     res = _heappop(A, constraint)
     return res
-
-
-@overload
-def heapsort[C: Comparable](A: list[C], key: None = ...) -> None: ...
-@overload
-def heapsort[T, C](A: list[T], key: Conversion[T, C]) -> None: ...
-@overload
-def heapsort[T, C](A: list[T], *, key: Conversion[T, C]) -> None: ...
-def heapsort[T, C](A: list, key: Conversion[T, C]|None=None) -> None:
-    """Sorts the input elements in-place, using the heapsort algorithm"""
-
-    constraint = make_constraint(min_heap=False, key=key)
-    _heapify(A, constraint)
-
-    heap_size = len(A)
-    for i in reversed(range(1, len(A))):
-        A[0], A[i] = A[i], A[0]
-        heap_size -= 1
-        _restore_downwards(A, 0, constraint, stopat=heap_size)

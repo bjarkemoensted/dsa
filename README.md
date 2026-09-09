@@ -7,10 +7,12 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Stack](#stack)
   - [Queue](#queue)
   - [Heap](#heap)
+    - [Heap operations](#heap-operations)
   - [Priority Queue](#priority-queue)
   - [Linked List](#linked-list)
 - [Sorting](#sorting)
   - [Quicksort](#quicksort)
+  - [Heapsort](#heapsort)
 - [Automata \& Formal Languages](#automata--formal-languages)
   - [Regular languages \& Finite State Automata](#regular-languages--finite-state-automata)
     - [Finite State Automata](#finite-state-automata)
@@ -54,7 +56,7 @@ assert q.dequeue() == "foo"
 ## Heap
 Heap operation are implemented in two different ways, as functions operating on a list, and as a class.
 
-### Heap functions <!-- omit in toc -->
+### Heap operations
 The first closely follows CLRS, but uses a somewhat different naming convention. CLRS uses '(max)-heapify' for the operation which restores the heap property by moving elements in violation of the heap property down through the heap (by recursively swapping with the larger child node), until the property is restored.
 
 Slightly confusing (at least to me), the algorithm for restoring the heap property in the 'opposite' direction (swapping violating nodes with their parents up through the heap) isn't given until the section on priority queues, as is named 'heap-increase-key'.
@@ -198,6 +200,24 @@ assert a == b == c
 ```
 If `pivot_strategy == 'random'`, a `seed` can be passed. It can be either a `random.Random` object, or None/int used to seed one. The default is None.
 
+## Heapsort
+Heapsort is implemented using the previously described
+[heap operations](#heap-operations).
+The implementation closely follows CLRS section 6.4, with a few minor changes:
+* The `Sorter` machinery is again used to convert optional `key` and `reverse` parameters into a single `constraint` callable, which determines the heap structure, and hence the sorting order.
+* Since the heap implementation is based on a constraint function (`<=` by default) which must return true for parent-child pairs, and since the `Sorter` class assumes the same constraint function holds between any subsequent elements in the list to be sorted, the algorithm sorts in reverse order.
+In the simplest case with no custom key function, the heapsort algorithm will use a min-heap rather than a max-heap, for instance.
+To accomodate this, the list is simply reversed in-place after sorting.
+
+Example:
+```python
+from dsa.sorting.heapsort import heapsort
+
+A = [1,4,2,3]
+ordered = heapsort(A)
+assert sorted(A) == ordered
+assert ordered == heapsort(A, reverse=True)[::-1]
+```
 
 # Automata & Formal Languages
 This section concerns formal language theory, along with the associated automata theory.

@@ -2,7 +2,7 @@ import unittest
 from copy import deepcopy
 from typing import Any, Callable, Iterable, Protocol, cast, get_args
 
-from dsa.sorting import quicksort, sorter_class
+from dsa.sorting import heapsort, quicksort, sorter_class
 from dsa.utils.randomization import make_random_state
 from dsa.utils.types import Comparable, Conversion
 
@@ -67,6 +67,12 @@ class TestSorting(unittest.TestCase):
         for numbers in self.data:
             self.check_sorted(self.sort(numbers))
 
+    def test_reverse_sorting(self) -> None:
+        for numbers in self.data:
+            reverse_order = self.sort(numbers, reverse=True)
+            ordered = list(reversed(reverse_order))
+            self.check_sorted(ordered)
+
     def test_key_sorting_int(self) -> None:
         for numbers in self.data:
             ordered = self.sort(numbers, key=int_key)
@@ -122,3 +128,5 @@ class TestQuickSort(TestSorting):
         self.assertNotEqual(sort_(None), sort_(None))
         
         
+class TestHeapSort(TestSorting):
+    sort = heapsort.heapsort
