@@ -1,6 +1,6 @@
 # Add code here for type checking.
 from dsa.data_structures.heap import Heap
-from dsa.data_structures.heap_operations import heapify, heappop, heappush, heapsort
+from dsa.data_structures.heap_operations import heapify, heappop, heappush
 
 from ..utils import NonComparable
 
@@ -42,14 +42,6 @@ _popped_noncom: NonComparable = heappop(list_noncom, key=NonComparable.value_key
 # # Check expected errors
 heappop(list_noncom, NonComparable(0))  # type: ignore
 heappop(list_noncom, NonComparable(0), key=None)  # type: ignore
-
-### Check heap sort
-heapsort(list_int)
-heapsort(list_str)
-heapsort(list_noncom, key=NonComparable.value_key)
-# Check errors
-heapsort(list_noncom)  # type: ignore
-heapsort(list_noncom, key=None)  # type: ignore
 
 ### Check Heap class
 heap_int = Heap(list_int)

@@ -75,23 +75,6 @@ class TestMaxHeap(TestHeap):
             self.assertGreaterEqual(self.vals_heap[ip], self.vals_heap[ic])
 
 
-class TestSorting(unittest.TestCase):
-    def setUp(self) -> None:
-        self.vals = make_integers(n=1000)
-        return super().setUp()
-    
-    def test_heap_sort(self) -> None:
-        heap_operations.heapsort(self.vals)
-        for i in range(len(self.vals) - 1):
-            i2 = i+1
-            a = self.vals[i]
-            b = self.vals[i2]
-            self.assertTrue(
-                a <= b,
-                f"Subsequent elements out of order at index {i} (values {a}, {b})"
-            )
-
-
 class TestHeapClass(unittest.TestCase):
     def setUp(self) -> None:
         self.heap = Heap(values=make_integers(n=200))
