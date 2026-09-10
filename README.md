@@ -13,6 +13,7 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
 - [Sorting](#sorting)
   - [Quicksort](#quicksort)
   - [Heapsort](#heapsort)
+  - [Mergesort](#mergesort)
 - [Automata \& Formal Languages](#automata--formal-languages)
   - [Regular languages \& Finite State Automata](#regular-languages--finite-state-automata)
     - [Finite State Automata](#finite-state-automata)
@@ -217,6 +218,22 @@ A = [1,4,2,3]
 ordered = heapsort(A)
 assert sorted(A) == ordered
 assert ordered == heapsort(A, reverse=True)[::-1]
+```
+
+## Mergesort
+The mergesort implementation differs from CLRS (section 2.3.1), mainly in that it works in-place rather than defining new arrays for each recursive call.
+The normal approach partitions arrays into a left and right subarray, then constructs a final array, populating it with elements from the subarrays.
+This approach instead populates a dict with the indices which must be swapped.
+At the merging step, cycle decomposition is used to reassign elements in the array.
+
+Usage is similar to the other sorting algorithms:
+```python
+from dsa.sorting.mergesort import mergesort
+
+A = [1,4,2,3]
+ordered = mergesort(A)
+assert sorted(A) == ordered
+assert ordered == mergesort(A, reverse=True)[::-1]
 ```
 
 # Automata & Formal Languages
