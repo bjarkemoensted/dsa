@@ -2,7 +2,7 @@ import unittest
 from copy import deepcopy
 from typing import Any, Callable, Iterable, Protocol, cast, get_args
 
-from dsa.sorting import heapsort, quicksort, sorter_class
+from dsa.sorting import heapsort, mergesort, quicksort, sorter_class
 from dsa.utils.randomization import make_random_state
 from dsa.utils.types import Comparable, Conversion
 
@@ -95,7 +95,6 @@ class TestQuickSort(TestSorting):
     
     def test_pivot_strategies(self) -> None:
         for strategy in get_args(quicksort.PivotStrategy.__value__):
-            print(strategy)
             for numbers in self.data:
                 sorted_ = self.sort(numbers, pivot_strategy=strategy)
                 self.check_sorted(sorted_)
@@ -130,3 +129,8 @@ class TestQuickSort(TestSorting):
         
 class TestHeapSort(TestSorting):
     sort = heapsort.heapsort
+
+
+
+class TestMergeSort(TestSorting):
+    sort = mergesort.mergesort

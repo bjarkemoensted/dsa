@@ -1,5 +1,6 @@
 # Add code here for type checking.
 from dsa.sorting.heapsort import heapsort
+from dsa.sorting.mergesort import mergesort
 from dsa.sorting.quicksort import quicksort
 
 from ..utils import NonComparable
@@ -36,3 +37,13 @@ heapsort(list_int, key=intkey)
 # These should not
 heapsort(list_noncom)  # type: ignore
 heapsort(list_noncom, key=None)  # type: ignore
+
+# These should work
+mergesort(list_int)
+mergesort(list_int, key=None)
+mergesort(list_str)
+mergesort(list_noncom, key=NonComparable.value_key)
+mergesort(list_int, key=intkey)
+# These should not
+mergesort(list_noncom)  # type: ignore
+mergesort(list_noncom, key=None)  # type: ignore
