@@ -1,6 +1,7 @@
 import unittest
+from collections import defaultdict
 from copy import deepcopy
-from typing import Any, Callable, Iterable, Protocol, cast, get_args
+from typing import Any, Callable, ClassVar, Iterable, Protocol, cast, get_args
 
 from dsa.sorting import heapsort, mergesort, quicksort, sorter_class
 from dsa.utils.randomization import make_random_state
@@ -38,6 +39,7 @@ def int_key(value: int) -> tuple[int, int]:
 class TestSorting(unittest.TestCase):
     data: list[list[int]]
     sort: SortFunc|sorter_class.Sorter = staticmethod(_default_sort)
+    STABLE: ClassVar[bool] = True
         
     def setUp(self) -> None:
         rs = make_random_state(0)
@@ -63,6 +65,63 @@ class TestSorting(unittest.TestCase):
             else:
                 self.assertLessEqual(val_a, val_b, f"Disorder at {i=}: {val_a=}, {val_b=}")
 
+    def check_stable[T: NonComparable, C: Comparable](
+            self,
+            before_sorting: list[T],
+            after_sorting: list[T],
+            key: Conversion[T, C]
+            ) -> None:
+        """Checks for stability by comparing lists before and after sorting.
+        Lists must contain instances of NonComparable, because their .uuid field is used to
+        assess ordering.
+        Stability here means: A sorting function is stable if elements a and b are tied in the sorting key value
+        (key(a) == key(b)), they appear in the same order in the sorted list (either a combefore b in both,
+        or b comes before a in both)"""
+
+        # For each output of the sorting key function, store the original indices
+        ind_by_value: dict[C, list[int]] = defaultdict(list)
+        for i, elem_a in enumerate(before_sorting):
+            val = key(elem_a)
+            ind_by_value[val].append(i)
+
+        # Store the indices after sorting by the uuid of each elements
+        post_sorting_ind_by_uuid = {elem.uuid: i for i, elem in enumerate(after_sorting)}
+
+        # Examime all elements a, b which share a key value, and where b is located after a in the unsorted list
+        for value, indices in ind_by_value.items():
+            for i_, ia in enumerate(indices):
+                elem_a = before_sorting[ia]
+                ia_after = post_sorting_ind_by_uuid[elem_a.uuid]
+                for ib in indices[i_+1:]:
+                    elem_b = before_sorting[ib]
+                    # Double check that a and b share a key, and that b was located after a before sorting
+                    assert key(elem_a) == key(elem_b) == value and ia < ib
+                    i2_after = post_sorting_ind_by_uuid[elem_b.uuid]
+                    # Check that b also comes after a in the sorted list
+                    self.assertLess(ia_after, i2_after)
+
+    def test_stable(self) -> None:
+        """Checks for stability, e.g. that if elements are tied in the sorting key, their relative
+        order is preserved when sorting"""
+
+        if not self.STABLE:
+            return
+
+        # Make a number of NonComparable instances, with many tied values (only 0 and 1 allowed)
+        ints = make_integers(n=100, low=0, high=1)
+        stuff = [NonComparable(value=value) for value in ints]
+
+        # Sort according to their (often tied) values
+        key = NonComparable.value_key
+        sorted_ = self.sort(stuff, key=key)
+
+        # Run stability check
+        self.check_stable(
+            before_sorting=stuff,
+            after_sorting=sorted_,
+            key=key
+        )
+
     def test_standard_sorting(self) -> None:
         for numbers in self.data:
             self.check_sorted(self.sort(numbers))
@@ -87,6 +146,7 @@ class TestSorting(unittest.TestCase):
 
 class TestQuickSort(TestSorting):
     sort = quicksort.quicksort
+    STABLE: ClassVar[bool] = False
 
     def test_standard_sorting(self) -> None:
         for numbers in self.data:
@@ -129,8 +189,9 @@ class TestQuickSort(TestSorting):
         
 class TestHeapSort(TestSorting):
     sort = heapsort.heapsort
-
+    STABLE: ClassVar[bool] = False
 
 
 class TestMergeSort(TestSorting):
     sort = mergesort.mergesort
+
