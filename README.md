@@ -14,6 +14,7 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Quicksort](#quicksort)
   - [Heapsort](#heapsort)
   - [Mergesort](#mergesort)
+  - [Others](#others)
 - [Automata \& Formal Languages](#automata--formal-languages)
   - [Regular languages \& Finite State Automata](#regular-languages--finite-state-automata)
     - [Finite State Automata](#finite-state-automata)
@@ -235,6 +236,29 @@ ordered = mergesort(A)
 assert sorted(A) == ordered
 assert ordered == mergesort(A, reverse=True)[::-1]
 ```
+
+
+## Others
+I might play around with some more sorting algorithms that don't really warrant their own section, so I'll list those here for completeness:
+1. Bubble sort. Implemented as problem 2-2 in CLRS, except checking at each iteration whether the list has been sorted, and terminating in that case.
+
+As previously described, sorting functions all accept the same signature:
+
+```python
+from dsa.sorting.bubblesort import bubblesort
+
+# Add more here
+funcs = (bubblesort,)
+
+A = [1,4,2,3]
+A_sorted = sorted(A)
+
+for func in funcs:
+    ordered = func(A)
+    assert A_sorted == ordered
+    assert ordered == func(A, reverse=True)[::-1]
+```
+
 
 # Automata & Formal Languages
 This section concerns formal language theory, along with the associated automata theory.
