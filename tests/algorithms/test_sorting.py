@@ -3,7 +3,7 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import Any, Callable, ClassVar, Iterable, Protocol, cast, get_args
 
-from dsa.sorting import heapsort, mergesort, quicksort, sorter_class
+from dsa.sorting import bubblesort, heapsort, mergesort, quicksort, sorter_class
 from dsa.utils.randomization import make_random_state
 from dsa.utils.types import Comparable, Conversion
 
@@ -194,4 +194,8 @@ class TestHeapSort(TestSorting):
 
 class TestMergeSort(TestSorting):
     sort = mergesort.mergesort
+
+
+class TestBubbleSort(TestSorting):
+    sort = bubblesort.bubblesort
 
