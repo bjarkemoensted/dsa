@@ -40,7 +40,8 @@ class TestSorting(unittest.TestCase):
     data: list[list[int]]
     sort: SortFunc|sorter_class.Sorter = staticmethod(_default_sort)
     STABLE: ClassVar[bool] = True
-        
+
+
     def setUp(self) -> None:
         rs = make_random_state(0)
         edge_cases = [[], [1], [1, 2]]

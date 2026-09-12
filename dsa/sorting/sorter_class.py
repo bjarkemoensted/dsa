@@ -14,6 +14,7 @@ class SortingFunction[**P](Protocol):
     def __call__[T](self, A: list[T], constraint: Comparison[T], *args: P.args, **kwargs: P.kwargs) -> None: ...
 
 
+
 class Sorter[**P]:
     """Callable for wrapping various sorting functions.
     A recurring issue for writing flexible sorting functions is to have them all accept either
@@ -34,6 +35,36 @@ class Sorter[**P]:
         update_wrapper(self, inplace_sorter)
 
     @overload
+    def inplace[C: Comparable](
+        self,
+        A: list[C],
+        key: None=...,
+        reverse: bool = ...,
+        *args: P.args,
+        **kwargs: P.kwargs
+        ) -> None: ...
+    @overload
+    def inplace[T, C](
+        self,
+        A: list[T],
+        key: Conversion[T, C],
+        reverse: bool = ...,
+        *args: P.args,
+        **kwargs: P.kwargs
+        ) -> None: ...
+    def inplace(
+        self,
+        A: list[Any],
+        key: Conversion[Any, Any]|None=None,
+        reverse: bool=False,
+        *args: P.args,
+        **kwargs: P.kwargs
+    ) -> None:
+        relation = operator.ge if reverse else operator.le
+        constraint = make_comparison(relation=relation, key=key)
+        self.func(A, constraint, *args, **kwargs)
+    
+    @overload
     def __call__[C: Comparable](
         self,
         A: list[C],
@@ -52,17 +83,14 @@ class Sorter[**P]:
         **kwargs: P.kwargs
         ) -> list[T]: ...
     def __call__(
-            self,
-            A: list[Any],
-            key: Conversion[Any, Any]|None=None,
-            reverse: bool=False,
-            *args: P.args,
-            **kwargs: P.kwargs
-        ) -> list[Any]:
+        self,
+        A: list[Any],
+        key: Conversion[Any, Any]|None=None,
+        reverse: bool=False,
+        *args: P.args,
+        **kwargs: P.kwargs
+        ) -> list[Any]|None:
 
         A = [elem for elem in A]
-        relation = operator.ge if reverse else operator.le
-        constraint = make_comparison(relation=relation, key=key)
-        self.func(A, constraint, *args, **kwargs)
-
+        self.inplace(A, key, reverse, *args, **kwargs)
         return A
