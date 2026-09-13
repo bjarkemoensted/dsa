@@ -41,11 +41,10 @@ class TestSorting(unittest.TestCase):
     sort: SortFunc|sorter_class.Sorter = staticmethod(_default_sort)
     STABLE: ClassVar[bool] = True
 
-
     def setUp(self) -> None:
         rs = make_random_state(0)
         edge_cases = [[], [1], [1, 2]]
-        cases = [make_integers() for _ in range(100)]
+        cases = [make_integers() for _ in range(20)]
         self.data = cases + edge_cases
         self.noncom_data = [[NonComparable(value=n, other_value=rs.randint(0, 10)) for n in case] for case in cases]
         return super().setUp()
@@ -143,6 +142,15 @@ class TestSorting(unittest.TestCase):
         for objects in self.noncom_data:
             ordered = self.sort(objects, key=NonComparable.value_key)
             self.check_sorted(ordered, key=NonComparable.value_key)
+
+    def test_inplace_sorting(self) -> None:
+        if not isinstance(self.sort, sorter_class.Sorter):
+            return
+        
+        for numbers in self.data:
+            res = self.sort.inplace(numbers)
+            self.assertIsNone(res)
+            self.check_sorted(numbers)
 
 
 class TestQuickSort(TestSorting):

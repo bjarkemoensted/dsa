@@ -1,6 +1,6 @@
 import operator
 from functools import update_wrapper
-from typing import Any, Protocol, overload
+from typing import Any, Iterable, Protocol, overload
 
 from dsa.utils.comparison import make_comparison
 from dsa.utils.types import Comparable, Comparison, Conversion
@@ -67,7 +67,7 @@ class Sorter[**P]:
     @overload
     def __call__[C: Comparable](
         self,
-        A: list[C],
+        A: Iterable[C],
         key: None=...,
         reverse: bool = ...,
         *args: P.args,
@@ -76,7 +76,7 @@ class Sorter[**P]:
     @overload
     def __call__[T, C](
         self,
-        A: list[T],
+        A: Iterable[T],
         key: Conversion[T, C],
         reverse: bool = ...,
         *args: P.args,
@@ -84,7 +84,7 @@ class Sorter[**P]:
         ) -> list[T]: ...
     def __call__(
         self,
-        A: list[Any],
+        A: Iterable[Any],
         key: Conversion[Any, Any]|None=None,
         reverse: bool=False,
         *args: P.args,
