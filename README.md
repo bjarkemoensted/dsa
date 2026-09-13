@@ -175,13 +175,16 @@ Sorting often means rearranging an array such that for any two indices `i < j`, 
 * If a key function is specified, elements of `A` can be any type, but the key function must map that type to something which supports comparison.
 * If `reverse=True` is provided, the opposite ordering should be imposed on elements (or the output of the key function, if provided)
 
-These challenges are the same for any sorting algorithm, and requires a lot of boilerplate code for checking parameters and for function overloads (so the type checker can catch the error if e.g. a list of non-comparable objects is passed without a key function).
+These challenges are the same for any sorting algorithm, and requires a lot of boilerplate code for checking parameters and for function overloads (so the type checker can catch the error if e.g. a iterable of non-comparable objects is passed without a key function).
 
 To address the above challenges, sorting functions are generally written so as to accept instead a single `constraint` callable, which takes two elements a, and b, and returns true if a may be located left of b after sorting (the constraint defaults to `<=` for normal sorting).
 Converting a combination of `reverse` and `key` into a `constraint` is then handled by the `Sorter` class, which also implements the overloads needed to let type checkers catch invalid combinations of parameters.
 
 The `Sorter` class can then be used directly as a decorator for a sorting function (which must accept a list `A` and a callable `constraint` as its first and second arguments, respectively).
 If the sorting function recurses, it should be implemented as a private function, e.g. `def _my_sort[T](A[T], constraint: Callable[[T, T], bool], ...)`, and a `Sorter` instance can then be used as the public version of the function, e.g. `my_sort = Sorter(_my_sort)`.
+
+The `Sorter` class also exposes a method for sorting a list in-place: `sorter_instance.inplace(A=[2,3,1], ...)`, also accepting optional `key` and `reverse` arguments.
+Regular sorting (not inplace) accepts any iterable, but returns a list.
 
 ## Quicksort
 Quicksort works by recursively

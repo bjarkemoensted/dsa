@@ -1,4 +1,6 @@
 # Add code here for type checking.
+from typing import assert_type
+
 from dsa.sorting.heapsort import heapsort
 from dsa.sorting.mergesort import mergesort
 from dsa.sorting.quicksort import quicksort
@@ -47,3 +49,12 @@ mergesort(list_int, key=intkey)
 # These should not
 mergesort(list_noncom)  # type: ignore
 mergesort(list_noncom, key=None)  # type: ignore
+
+### Check stuff related to inplace sorting and 
+res = mergesort.inplace(list_int)
+assert_type(res, None)
+ordered_ints = mergesort(range(10))
+assert_type(ordered_ints, list[int])
+# Attempting to sort an iterator in-place should give a type warning
+int_iterator = range(10)
+mergesort.inplace(int_iterator)  # type: ignore
