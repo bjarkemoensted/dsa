@@ -1,3 +1,5 @@
+from typing import Iterator
+
 from dsa.data_structures.heap_operations import heappop, heappush
 from dsa.data_structures.linear.base import BaseContainer
 
@@ -9,8 +11,7 @@ def _get_priority[T](elem: tuple[T, object]) -> T:
     return priority
 
 
-# TODO drop the base container stuff. Makes it difficult to navigate!!!
-class PriorityQueue[T](BaseContainer):
+class PriorityQueue[T](BaseContainer[T]):
     """Priority queue, using a min-heap under the hood (i.e. elements with lowest priorities
     are first returned from the queue)."""
     
@@ -26,26 +27,29 @@ class PriorityQueue[T](BaseContainer):
         self.arr: list[tuple[PriorityType, T]] = []
         self._counter = 0
     
-    def _size(self) -> int:
+    def size(self) -> int:
         return len(self.arr)
 
-    def _put(self, item: T, priority: float=0) -> None:
+    def __iter__(self) -> Iterator[T]:
+        items = (item for _, item in self.arr)
+        yield from items
+
+    def push(self, item: T, priority: float=0) -> None:
+        self._pre_put(item)
         priority_: PriorityType = (priority, self._counter) if self.stable else priority
         if self.stable:
             self._counter += 1
 
         elem: tuple[PriorityType, T] = (priority_, item)
         heappush(self.arr, elem, key=_get_priority)
-    
-    def _get(self) -> T:
-        _, item = heappop(self.arr, key=_get_priority)
+
+    def pop(self) -> T:
+        self._pre_get()
+        _, item = self.pop_element()
         return item
 
-    def pop(self) -> tuple[int|float, T]:
+    def pop_element(self) -> tuple[int|float, T]:
         key, item = heappop(self.arr, key=_get_priority)
         priority = key[0] if isinstance(key, tuple) else key
         return priority, item
     
-    def to_list(self) -> list[T]:
-        res = [val for _, val in self.arr]
-        return res

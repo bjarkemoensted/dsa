@@ -1,23 +1,23 @@
 """Implements a base class for simple linear data structures (stacks, queues)"""
 
 from abc import ABC, abstractmethod
+from typing import Iterator
 
 DEFAULT_ARR_SIZE = 8
 
 
+class Sentinel:
+    """Reserved class for objects with special meanings.
+    This is to have a class that's guaranteed to convey a special meaning, rather than e.g.
+    using None, which may cause ambiguity if e.g. None can mean both 'missing value' or a value of None"""
+    pass
+
+
 class BaseContainer[T](ABC):
-    """Base class for linear data structures. Has abstract methods for '_get' and '_put', which can be overridden
-    to implement said operations. Aliases can then be defined for the terminology typically used for the specific data
-    structure, i.e. push/pop for stacks, etc.
-    The _get/_put methods are private to allow more generic public versions (get/put) to run common functionality
-    before inserting/removing elements, such as checking if the data structures is full/empty.
-    In addition, abstract methods _size and _to_list must also be defined for child classes"""
+    """Base class for linear data structures. This is just to avoid boilerplate code for size logic etc"""
     
     def __init__(self, maxsize: int=-1):
         self.maxsize = maxsize
-    
-    def size(self) -> int:
-        return self._size()
     
     def empty(self) -> bool:
         """Whether the data structure is currently empty"""
@@ -30,30 +30,22 @@ class BaseContainer[T](ABC):
     def full(self) -> bool:
         """Whether the data structure is currently full"""
         return self.size() == self.maxsize
-    
-    def get(self, **kwargs: object) -> T:
+
+    def _pre_get(self) -> None:
         if self.empty():
             raise RuntimeError(f"{self.__class__.__name__} is empty")
-        return self._get(**kwargs)
-    
-    def put(self, item: T, **kwargs: object) -> None:
+        
+    def _pre_put(self, item: T) -> None:
         if self.full():
             raise RuntimeError(f"{self.__class__.__name__} is full, can't add item ({item})")
-        
-        return self._put(item, **kwargs)
-    
+
     @abstractmethod
-    def _get(self) -> T:
+    def size(self) -> int:
         raise NotImplementedError
-    
+
     @abstractmethod
-    def _put(self, item: T) -> None:
+    def __iter__(self) -> Iterator[T]:
         raise NotImplementedError
-    
-    @abstractmethod
-    def _size(self) -> int:
-        raise NotImplementedError
-    
-    @abstractmethod
+
     def to_list(self) -> list[T]:
-        raise NotImplementedError
+        return [elem for elem in self]

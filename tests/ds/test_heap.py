@@ -97,7 +97,7 @@ class TestHeapClass(unittest.TestCase):
             self.assertTrue(all(self.heap.constraint(val, other) for other in self.heap.A))
             self.assertTrue(self.heap._invariant_satisfied())
         
-        self.assertRaises(IndexError, self.heap.pop)
+        self.assertRaises(RuntimeError, self.heap.pop)
     
     def test_height(self) -> None:
         for n in range(100):

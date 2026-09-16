@@ -2,14 +2,35 @@ import unittest
 from abc import ABC, abstractmethod
 from collections import Counter
 from copy import deepcopy
+from typing import Any
 
-from dsa.data_structures.linear.queue import BaseContainer
+from dsa.data_structures.linear.base import BaseContainer
 
 
-class TestLinear[T, L: BaseContainer](ABC, unittest.TestCase):
+class TestLinear[L: BaseContainer](ABC, unittest.TestCase):
     """For running some standard tests, which are presumed to be similar across different
     types of linear structures like stacks, queues, etc."""
-    
+
+    @staticmethod
+    def put(container: L, item: Any) -> None:
+        raise NotImplementedError
+
+    @staticmethod
+    def get(container: L) -> Any:
+        raise NotImplementedError
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        required = (
+            "put",
+            "get"
+        )
+
+        missing = [attr for attr in required if attr not in cls.__dict__]
+        if missing:
+            raise RuntimeError(f"Test subclass is missing: {', '.join(missing)}")
+        return super().setUpClass()
+
     data: L
     data_bounded: L
     
@@ -18,53 +39,53 @@ class TestLinear[T, L: BaseContainer](ABC, unittest.TestCase):
 
     def test_is_full(self) -> None:
         for val in range(self.data_bounded.maxsize):
-            self.data_bounded.put(val)
+            self.put(self.data_bounded, val)
         self.assertTrue(self.data_bounded.full())
 
     def test_insertion(self) -> None:
         for i, val in enumerate(self.vals_):
             size_exp = i + 1
-            self.data.put(val)
+            self.put(self.data, val)
             self.assertTrue(self.data.size() == size_exp)
-            
+
             if size_exp > self.data_bounded.maxsize:
                 with self.assertRaises(RuntimeError):
-                    self.data_bounded.put(val)
+                    self.put(self.data_bounded, val)
             else:
-                self.data_bounded.put(val)
+                self.put(self.data_bounded, val)
             self.assertEqual(self.data_bounded.size(), min(size_exp, self.data_bounded.maxsize))
     
     def test_deletion(self) -> None:
         for val in self.vals_:
-            self.data.put(val)
-        
+            self.put(self.data, val)
+            
         n_elems = self.data.size()
         for _ in range(n_elems):
-            self.data.get()
+            self.get(self.data)
             n_elems -= 1
             self.assertEqual(n_elems, self.data.size())
     
     def test_overflow(self) -> None:
         for val in range(self.data_bounded.maxsize):
-            self.data_bounded.put(val)
+            self.put(self.data_bounded, val)
         
         self.assertTrue(self.data_bounded.full())
         
         with self.assertRaises(RuntimeError):
-            self.data_bounded.put(42)
+            self.put(self.data_bounded, 42)
     
     def test_underflow(self) -> None:
         self.assertTrue(self.data.empty())
 
         with self.assertRaises(RuntimeError):
-            self.data.get()
+            self.get(self.data)
     
     def test_to_list(self) -> None:
         for i in range(len(self.vals_)):
             subvals = list(self.vals_[:i])
             q = deepcopy(self.data)
             for val in subvals:
-                q.put(val)
+                self.put(q, val)
             
             list_ = q.to_list()
             # Compare the number of occurrences of each element to compare unordered
