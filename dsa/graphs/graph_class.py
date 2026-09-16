@@ -1,14 +1,44 @@
+from __future__ import annotations
+
 from collections import defaultdict
-from typing import ClassVar, Hashable, Iterable, Iterator, Self
+from typing import Any, ClassVar, Hashable, Iterable, Iterator, Mapping, Self
 
 import networkx as nx
 
+from dsa.graphs.exceptions import GraphError
 
-class GraphError(Exception):
-    pass
+type AttrType = Mapping[Any, object]
+
+DEFAULT_EDGE_WEIGHT = 1
+_NETWORKX_WEIGHT_ATTRIBUTE = "weight"
+
+
+class EdgeView[N: Hashable]:
+    """TODO docs"""
+    
+    def __init__(self, G: Graph[N]) -> None:
+        self._G = G
+
+    def _iter_directed(self) -> Iterator[tuple[N, N]]:
+        yield from ((u, v) for u, d in self._G._adj.items() for v in d)
+
+    def _iter_undirected(self) -> Iterator[tuple[N, N]]:
+        seen: set[N] = set()
+        for u, d in self._G._adj.items():
+            for v in d:
+                if v not in seen:
+                    yield u, v
+                #
+            seen.add(u)
+
+    def __iter__(self) -> Iterator[tuple[N, N]]:
+        iterator_ = self._iter_directed if self._G.directed else self._iter_undirected
+        yield from iterator_()
 
 
 class Graph[N: Hashable]:
+    """TODO docs"""
+
     directed: ClassVar[bool] = False
     
     def __init__(self, nodes: Iterable[N]=()) -> None:
@@ -23,7 +53,7 @@ class Graph[N: Hashable]:
         for node in nodes:
             self.add_node(node)
 
-    def add_node(self, node: N, attrs: dict[Hashable, object]|None=None) -> Self:
+    def add_node(self, node: N, attrs: AttrType|None=None) -> Self:
         """Adds a node to the graph. Arbitrary node attributes can be passed as keyword arguments"""
 
         if node in self:
@@ -44,7 +74,7 @@ class Graph[N: Hashable]:
         self._node_attrs.pop(node, None)
         return self
 
-    def _add_edge(self, u: N, v: N, weight: float, attrs: dict[Hashable, object]|None=None) -> None:
+    def _add_edge(self, u: N, v: N, weight: float, attrs: AttrType|None=None) -> None:
         """Add a single edge u -> v
         To be called after various checks like node existance"""
 
@@ -55,20 +85,18 @@ class Graph[N: Hashable]:
             self._adj[u] = {v: weight}
 
         self._succ[u].add(v)
-        self._pred[v].add(u)
+
+        if self.directed:
+            self._pred[v].add(u)
 
         # Update attributes if any are passed
         if attrs:
             self._edge_attrs[(u, v)].update(attrs)
 
-    def add_edge(self, u: N, v: N, weight: float, attrs: dict[Hashable, object]|None=None) -> Self:
+    def add_edge(self, u: N, v: N, weight: float, attrs: AttrType|None=None) -> Self:
         """Add an edge connect node u to node v.
         dist: The distance.
         **attrs: Arbitrary attributes of the edge"""
-
-        # Raise an error if the edge already exists
-        if self.has_edge(u, v):
-            raise GraphError(f"Attempted to add edge {u} -> {v}, which already exists")
 
         # Ensure nodes exist
         key = (u, v)
@@ -77,6 +105,8 @@ class Graph[N: Hashable]:
                 self.add_node(node)
 
         self._add_edge(u, v, weight=weight, attrs=attrs)
+        if not self.directed:
+            self._add_edge(v, u, weight=weight, attrs=attrs)
 
         return self
 
@@ -96,43 +126,58 @@ class Graph[N: Hashable]:
     def __contains__(self, node: N) -> bool:
         return node in self._adj
 
-    def edges(self) -> Iterator[tuple[N, N]]:
-        yield from ((u, v) for u, d in self._adj.items() for v in d)
+    def edges(self) -> EdgeView[N]:
+        return EdgeView(self)
+
+    def iter_edge_weights(self) -> Iterator[tuple[N, N, float|int]]:
+        for u, v in self.edges():
+            w = self._adj[u][v]
+            yield u, v, w
+
+    def neighbors_with_weights(self, node: N) -> Iterator[tuple[N, float|int]]:
+        yield from (self._adj[node].items())
+
+    def neighbors(self, node: N) -> Iterator[N]:
+        yield from (v for v, _ in self.neighbors_with_weights(node))
 
     def nodes(self) -> Iterator[N]:
         yield from self._adj
-    #
+
+    def to_networkx(self) -> nx.Graph[N]:
+        return _as_networkx(self)
 
 
-def _initialize_new(G: nx.Graph) -> Graph:
-    # TODO what's wrong with this??? !!!
-    # match G:
-    #     case nx.DiGraph:
-    #         raise NotImplementedError
-    #     case nx.Graph:
-    #         return Graph()
-    #     case _:
-    #         raise TypeError(f"No equivalent for graph type {type(G)}")
-
-    match type(G):
-        case nx.Graph:
-            return Graph()
+def _initialize_equivalent_networkx_class[N: Hashable](G: Graph[N]) -> nx.Graph[N]:
+    match G:
+        case Graph():
+            return nx.Graph()
         case _:
-            raise TypeError(f"No equivalent for graph type {type(G)}")
+            raise RuntimeError(f"Could not determine appropriate networkx type for {type(G)}")
 
 
-def clone_networkx_graph[N](G: nx.Graph[N]) -> Graph[N]:
-    res = _initialize_new(G)
+def _as_networkx[N: Hashable](G: Graph[N]) -> nx.Graph[N]:
+    # Initialize the networkx graph
+    res = _initialize_equivalent_networkx_class(G)
 
-    # TODO handle node attributes
+    # Add the nodes
     for node in G.nodes():
-        res.add_node(node)
+        node_attrs: dict[str, Any] = {}
+        for k, v in G._node_attrs[node].items():
+            if not isinstance(k, str):
+                raise TypeError
+            node_attrs[k] = v
+        res.add_node(node, **node_attrs)
 
-    for u, v, data in G.edges(data=True):
-        d: dict[Hashable, object] = {k: v for k, v in data.items()}
-        weight = d.pop("weight", 1)
-        if not isinstance(weight, float|int):
-            raise TypeError
-        res.add_edge(u, v, weight=weight, attrs=d)
-    
+    # Add the edges
+    for u, v, weight in G.iter_edge_weights():
+        edge_attrs: dict[str, Any] = {_NETWORKX_WEIGHT_ATTRIBUTE: weight}
+        for k_, v_ in G._edge_attrs[(u, v)].items():
+            if not isinstance(k_, str):
+                raise TypeError
+            if k_ == _NETWORKX_WEIGHT_ATTRIBUTE:
+                raise ValueError(f"{_NETWORKX_WEIGHT_ATTRIBUTE!r} is reserved for weights in networkx graphs!")
+            edge_attrs[k_] = v_
+
+        res.add_edge(u, v, **edge_attrs)
+        
     return res
