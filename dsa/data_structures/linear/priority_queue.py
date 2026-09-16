@@ -9,6 +9,7 @@ def _get_priority[T](elem: tuple[T, object]) -> T:
     return priority
 
 
+# TODO drop the base container stuff. Makes it difficult to navigate!!!
 class PriorityQueue[T](BaseContainer):
     """Priority queue, using a min-heap under the hood (i.e. elements with lowest priorities
     are first returned from the queue)."""
@@ -39,6 +40,11 @@ class PriorityQueue[T](BaseContainer):
     def _get(self) -> T:
         _, item = heappop(self.arr, key=_get_priority)
         return item
+
+    def pop(self) -> tuple[int|float, T]:
+        key, item = heappop(self.arr, key=_get_priority)
+        priority = key[0] if isinstance(key, tuple) else key
+        return priority, item
     
     def to_list(self) -> list[T]:
         res = [val for _, val in self.arr]

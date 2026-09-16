@@ -23,6 +23,9 @@ class BaseContainer[T](ABC):
         """Whether the data structure is currently empty"""
         res = self.size() == 0
         return res
+
+    def __bool__(self) -> bool:
+        return not self.empty()
     
     def full(self) -> bool:
         """Whether the data structure is currently full"""
