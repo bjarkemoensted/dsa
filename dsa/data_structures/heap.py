@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable
-from typing import overload
+from typing import Iterator, overload
 
 from dsa.data_structures import heap_operations
+from dsa.data_structures.linear.queue import BaseContainer
 from dsa.utils.types import Comparable, Comparison, Conversion
 
 
-class Heap[T]:
+class Heap[T](BaseContainer[T]):
     """Implements a Heap class. The class supports both min- and max-heaps, and accepts an arbitrary key function,
     maintaining the heap invariant on the result of applying the function to elements on the heap.
     In other words, a standard min-heap will maintain the invariant parent <= child for all parent-child pairs,
@@ -42,20 +43,25 @@ class Heap[T]:
             self,
             values: Iterable[T]|None=None,
             min_heap: bool=heap_operations.MIN_HEAP_DEFAULT,
-            key: Conversion[T, C]|None=None
+            key: Conversion[T, C]|None=None,
+            maxsize: int = -1
         ) -> None:
         """values: optional iterable of elements with which to initialize the heap.
         min_: Whether to use a min-heap (defaults to True).
         key: Optional callable to apply to elements before comparing (for basing the heap structure
             on some function of its elements)"""
-        
+
+        super().__init__(maxsize)
         self.A = [v for v in values] if values is not None else []
         self.min_heap = min_heap
         self.key = key
 
         self.constraint = heap_operations.make_constraint(min_heap=self.min_heap, key=self.key)
         self.heapify()
-    
+
+    def __iter__(self) -> Iterator[T]:
+        yield from self.A
+        
     def _invariant_satisfied(self) -> bool:
         """Whether the heap satisfies the heap property"""
         return heap_operations._satisfies_heap_property(self.A, self.constraint)
@@ -68,16 +74,21 @@ class Heap[T]:
     def push(self, item: T) -> None:
         """Pushes an element onto the heap"""
 
+        self._pre_put(item)
         return heap_operations._heappush(self.A, item, self.constraint)
     
     def pop(self) -> T:
         """Pops an element from the heap"""
 
+        self._pre_get()
         res = heap_operations._heappop(self.A, self.constraint)
         return res
         
     def __len__(self) -> int:
         return len(self.A)
+
+    def size(self) -> int:
+        return len(self)
     
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.A})"

@@ -5,7 +5,15 @@ from dsa.data_structures.linear.linked_list import LinkedList
 from .linear_basic_tests import TestLinear
 
 
-class BasicPriorityQueueTest(TestLinear):
+class BasicLinkedListTest(TestLinear):
+    @staticmethod
+    def get(container: LinkedList[int]) -> int:
+        return container.pop()
+
+    @staticmethod
+    def put(container: LinkedList[int], item: int) -> None:
+        return container.insert(item)
+
     def create_data_structure(self, *args: object, **kwargs: object) -> LinkedList[int]:
         return LinkedList(*args, **kwargs)  # type: ignore
 
@@ -16,7 +24,7 @@ class TestLinkedList(unittest.TestCase):
         self.list: LinkedList[object] = LinkedList()
 
     def test_insert_single_element(self) -> None:
-        self.list.put(10)
+        self.list.insert(10)
         
         node = self.list.search(10)
         self.assertIsNotNone(node)
@@ -28,7 +36,7 @@ class TestLinkedList(unittest.TestCase):
     def test_insert_multiple_elements(self) -> None:
         values = [1, 2, 3]
         for v in values:
-            self.list.put(v)
+            self.list.insert(v)
 
         for v in values:
             self.assertIsNotNone(self.list.search(v), f"Value {v} not found after insert")
@@ -43,9 +51,20 @@ class TestLinkedList(unittest.TestCase):
         self.assertIs(n2.next, n3)
         self.assertIs(n3.prev, n2)
 
+    def test_indexing(self) -> None:
+        values = list(range(10))
+        for v in values:
+            self.list.insert(v)
+
+        for i, val in enumerate(values):
+            self.assertEqual(val, self.list.peek(i))
+
+        for i in range(-1, -len(values), -1):
+            self.assertEqual(values[i], self.list.peek(i))
+
     def test_search_existing_and_non_existing(self) -> None:
-        self.list.put("a")
-        self.list.put("b")
+        self.list.insert("a")
+        self.list.insert("b")
 
         found = self.list.search("a")
         with self.assertRaises(ValueError):

@@ -5,7 +5,16 @@ from dsa.data_structures.linear.stack import Stack
 from .linear_basic_tests import TestLinear
 
 
-class BasicStackTest(TestLinear):    
+class BasicStackTest(TestLinear):
+    @staticmethod
+    def get(container: Stack[int]) -> int:
+        return container.pop()
+
+    @staticmethod
+    def put(container: Stack[int], item: int) -> None:
+        return container.push(item)
+
+
     def create_data_structure(self, *args: object, **kwargs: object) -> Stack[int]:
         return Stack(*args, **kwargs)  # type: ignore
 

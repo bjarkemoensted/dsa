@@ -5,7 +5,16 @@ from dsa.data_structures.linear.queue import Queue
 from .linear_basic_tests import TestLinear
 
 
-class BasicQueueTest(TestLinear):
+class BasicQueueTest(TestLinear[Queue[int]]):
+
+    @staticmethod
+    def get(container: Queue) -> int:
+        return container.dequeue()
+
+    @staticmethod
+    def put(container: Queue[int], item: int) -> None:
+        return container.enqueue(item)
+
     def create_data_structure(self, *args: object, **kwargs: object) -> Queue[int]:
         return Queue(*args, **kwargs)  # type: ignore
 

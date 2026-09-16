@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
-from typing import Self, cast
+from itertools import count
+from typing import Literal, Self, cast, overload
 
-from dsa.data_structures.linear.queue import BaseContainer
-
-
-class Sentinel:
-    pass
-
+from dsa.data_structures.linear.base import BaseContainer, Sentinel
 
 NIL = Sentinel()
 
@@ -39,9 +35,13 @@ class Node[T]:
         inst.prev = inst
         inst.next = inst
         return inst
+
+    def _key_string(self) -> str:
+        res = "NIL" if isinstance(self._key, Sentinel) else str(self._key)
+        return res
     
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__} <{self.key}>"
+        return f"{self.__class__.__name__} <{self._key_string()}>"
     
     def __str__(self) -> str:
         return repr(self)
@@ -67,7 +67,7 @@ class Node[T]:
         yield from self._iterate_direction(forward=False)
 
 
-class LinkedList[T](BaseContainer):
+class LinkedList[T](BaseContainer[T]):
     """A linked list, where elements are stored with references to the next and previous elements.
     Uses a sentinel node to represent the beginning and end of the list.
     As the number of elements can't be efficiently computed without traversing the entire list,
@@ -81,18 +81,6 @@ class LinkedList[T](BaseContainer):
         if values:
             self.extend(values)
     
-    def _put(self, item: T, insert_after: Node[T]|None=None) -> None:
-        """Insert an element. If a node is specified, inserts after that node."""
-        x = Node(key=item)
-        self.attach_node(x, insert_after=insert_after)
-    
-    def _get(self, node: Node|None=None) -> T:
-        """Retrieve the element stored at specified node."""
-        node_ = node or self.tail
-        self.detach_node(node_)
-        res = node_.key
-        return cast(T, res)
-    
     @property
     def head(self) -> Node[T]:
         """The head (first node) in the list"""
@@ -103,11 +91,13 @@ class LinkedList[T](BaseContainer):
         """The tail (last node) in the list"""
         return cast(Node[T], self.nil.prev)
 
-    def attach_node(self, node: Node[T], insert_after: Node[T]|None=None) -> None:
+    def attach_node(self, item: T, insert_after: Node[T]|None=None) -> None:
         """Inserts a new node into the linked list.
         If insert_after is provided, the new node is inserted following the specified node.
         If not provided, the new node is inserted at the end of the list, and thus becomes the
         new tail."""
+
+        node = Node(key=item)
         
         # Determine the nodes which must come before and after the newly inserted node
         prev_ = insert_after or self.tail
@@ -123,9 +113,10 @@ class LinkedList[T](BaseContainer):
         
         self._n_elems += 1
 
-    def detach_node(self, node: Node[T]) -> None:
+    def detach_node(self, node: Node[T]) -> T:
         """Removes the node from the list"""
-        
+
+        self._pre_get()
         # Update pointers to the node being removed
         prev_ = cast(Node[T], node.prev)
         prev_.next = node.next
@@ -137,24 +128,28 @@ class LinkedList[T](BaseContainer):
         node.prev = None
         
         self._n_elems -= 1
+
+        res = node.key
+        return res
     
-    def _size(self) -> int:
+    def size(self) -> int:
         return self._n_elems
     
-    def to_list(self) -> list[T]:
-        return [node.key for node in self.iterate_nodes()]
-
-    def iterate_nodes(self) -> Iterator[Node[T]]:
+    def iter_nodes(self, reverse: bool=False) -> Iterator[Node[T]]:
         """Iterate over nodes in the list"""
         
-        nodes = self.nil.forward()
+        nodes = self.nil.backwards() if reverse else self.nil.forward()
         _ = next(nodes)
         yield from nodes
+
+    def __iter__(self, reverse: bool=False) -> Iterator[T]:
+        elems = (node.key for node in self.iter_nodes(reverse))
+        yield from elems
     
     def search(self, key: T) -> Node[T]:
         """Return the first node containing the specified key.
         If not present, raises a ValueError"""
-        for node in self.iterate_nodes():
+        for node in self.iter_nodes():
             if node.key == key:
                 return node
         
@@ -162,19 +157,19 @@ class LinkedList[T](BaseContainer):
     
     def append(self, item: T) -> None:
         """Append to the tail (right) end of the list"""
-        self.put(item, insert_after=self.tail)
+        self.attach_node(item, insert_after=self.tail)
     
     def appendleft(self, item: T) -> None:
         """Append to the head (left) end of the list"""
-        self.put(item, insert_after=self.nil)
-    
+        self.attach_node(item, insert_after=self.nil)
+
     def pop(self) -> T:
         """Pop from the head (right) end of the list"""
-        return self.get(node=self.tail)
+        return self.detach_node(node=self.tail)
     
     def popleft(self) -> T:
         """Pop from the tail (right) end of the list"""
-        return self.get(node=self.head)
+        return self.detach_node(node=self.head)
     
     def extend(self, values: Iterable[T]) -> None:
         """Extend the tail (right) end of the list"""
@@ -185,16 +180,37 @@ class LinkedList[T](BaseContainer):
         """Extend the head (left) end of the list"""
         for value in values:
             self.appendleft(value)
+
+    @overload
+    def peek(self, i: int, return_node: Literal[True]) -> Node[T]: ...
+    @overload
+    def peek(self, i: int, return_node: Literal[False]=...) -> T: ...
+    def peek(self, i: int, return_node: bool=False) -> Node[T]|T:
+        # Define iterators for indices and nodes
+        reverse = i < 0
+        indices = count(start=-1, step=-1) if reverse else count(start=0, step=1)
+        nodes = self.iter_nodes(reverse=reverse)
+
+        for node in nodes:
+            ind = next(indices)
+            if ind == i:
+                if return_node:
+                    return node
+                else:
+                    return node.key
+                #
+            #
+        raise IndexError(f"No node found at index {i}")
     
-    def insert(self, item: T, index: int=0) -> None:
+    def insert(self, item: T, index: int|None=None) -> None:
         """Insert an element into the list.
         If an index is provided, the element is inserted at that position if possible (if index
         is larger than the list, the element is inserted at the end)."""
 
-        for i, node in enumerate(self.iterate_nodes()):
-            if i == index:
-                return self.put(item, insert_after=node)
-        return self.put(item)
+        self._pre_put(item)
+        target_node = self.tail if index is None else self.peek(index, return_node=True)
+
+        return self.attach_node(item, insert_after=target_node)
     
     def remove(self, item: T) -> None:
         """Removes the first occurrence of a value fro mthe list"""

@@ -10,11 +10,11 @@ def shortest_path_dijkstra[N](G: Graph[N], source: N, target: N) -> int|float:
     d0 = 0
     d_g: dict[N, int|float] = {source: d0}  # Shortest path to every node encountered
     # Initially, only the shortest path to the source is known (distance 0)
-    queue.put(item=source, priority=d0)
+    queue.push(item=source, priority=d0)
 
     while queue:
         # Consider the currently shortest distance found to any node
-        f, u = queue.pop()
+        f, u = queue.pop_element()
         # If that's the target, we're done
         if u == target:
             return d_g[u]
@@ -30,6 +30,6 @@ def shortest_path_dijkstra[N](G: Graph[N], source: N, target: N) -> int|float:
             improved = g_tentative < d_g.get(v, float("inf"))
             if improved:
                 d_g[v] = g_tentative
-                queue.put(item=v, priority=g_tentative)
+                queue.push(item=v, priority=g_tentative)
 
     raise NoPathError

@@ -25,6 +25,7 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
     - [Pushdown Automata](#pushdown-automata)
 
 # Data structures
+TODO UPDATE AFTER SIMPLIFICATION!!!
 A few elementary data structures have been implemented so far.
 Some classes share functionality such as inserting and removing elements - these derive from a base class which has abstract methods with agnostic terminology `_put`, `_get`, and `_size`. These are private because public versions (`put`, `get`, `size`) implement class-agnostic checks, such as throwing errors if attempting to get an element from an empty container. Any future thread-safe behaviors can also be implemented here. Child classes define aliases for the aforementioned methods to conform with conventions, such as stacks using `push` and `pop` for `put` and `get`, respectively.
 
@@ -142,9 +143,9 @@ elems = [
 ]
 
 for item, priority in elems:
-    q.put(item, priority=priority)
+    q.push(item, priority=priority)
 
-most_important = q.get()
+most_important = q.pop()
 assert most_important == 42
 ```
 
