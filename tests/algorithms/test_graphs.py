@@ -45,6 +45,9 @@ def standard_networks(n: int, seed: RandomSeeder) -> Iterator[Graph]:
     # Directed ER
     yield random_graphs.erdos_renyi(n=n, p=0.3, seed=rs, directed=True)
 
+    # Barabasi-Albert graph
+    yield random_graphs.barabasi_albert(n=n, m=max(1, n // 5), seed=rs)
+
     # Graph with a self-edge
     yield Graph(nodes=[1,2,3]).add_edge(1, 1, weight=1)
     yield DiGraph(nodes=[1,2,3]).add_edge(1, 1, weight=1)
@@ -97,9 +100,8 @@ class TestPathFinding(unittest.TestCase):
         return super().setUp()
 
     def check_find_shortest_path(self, pathfinder: PathFinder) -> None:
-        for i, (G, G_nx) in enumerate(self.graph_pairs):
-            for u, v, dist in iterate_random_pair_dists(G_nx, seed=self.rs):
-                
+        for G, G_nx in self.graph_pairs:
+            for u, v, dist in iterate_random_pair_dists(G_nx, seed=self.rs):    
                 if dist is None:
                     with self.assertRaises(NoPathError):
                         pathfinder(G, u, v)
@@ -109,3 +111,14 @@ class TestPathFinding(unittest.TestCase):
 
     def test_dijkstra(self) -> None:
         self.check_find_shortest_path(pathfinding.shortest_path_dijkstra)
+
+    def test_has_path(self) -> None:
+        for G, G_nx in self.graph_pairs:
+            nodes = list(G.nodes())
+            if len(nodes) < 2:
+                continue
+            for _ in range(20):
+                u, v = self.rs.choices(nodes, k=2)
+                expected = nx.has_path(G_nx, source=u, target=v)
+                found = pathfinding.has_path(G, source=u, target=v)
+                self.assertIs(found, expected)
