@@ -139,6 +139,13 @@ class Graph[N: Hashable]:
         else:
             return EdgeView(self)
 
+    def degree(self, node: N, weighted: bool=True) -> int|float:
+        weights = (w for _, w in self.successors(node))
+        if weighted:
+            return sum(weights)
+        else:
+            return sum(1 for _ in weights)
+
     def iter_edge_weights(self) -> Iterator[tuple[N, N, float|int]]:
         for u, v in self.edges():
             w = self._adj[u][v]

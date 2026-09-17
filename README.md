@@ -25,9 +25,9 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
     - [Pushdown Automata](#pushdown-automata)
 
 # Data structures
-TODO UPDATE AFTER SIMPLIFICATION!!!
 A few elementary data structures have been implemented so far.
-Some classes share functionality such as inserting and removing elements - these derive from a base class which has abstract methods with agnostic terminology `_put`, `_get`, and `_size`. These are private because public versions (`put`, `get`, `size`) implement class-agnostic checks, such as throwing errors if attempting to get an element from an empty container. Any future thread-safe behaviors can also be implemented here. Child classes define aliases for the aforementioned methods to conform with conventions, such as stacks using `push` and `pop` for `put` and `get`, respectively.
+Some classes share functionality such as inserting and removing elements, and determining current size and empty/full status.
+These share a `BaseContainer` abstract base class, which implements common functionality and enforces implementation of iteration and size (`__iter__` and `__len__`). It also has private methods to check whether an element may be added or retrieved.
 
 ## Stack
 Implementing stacks in python is a bit artifical since python lists have all the functionality of a stack. To mimic the dynamic memory allocation needed for implementing a stack from an array, values are stored in a list with some fixed initial size, which is then extended when more space is needed (unless `maxsize` is provided and exceeded).

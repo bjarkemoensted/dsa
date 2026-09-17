@@ -43,7 +43,7 @@ class Queue[T](BaseContainer[T]):
             self.arr[i] = val
     
     def enqueue(self, item: T) -> None:
-        """TODO docs"""
+        """Adds an item to the tail (back) of the queue"""
         self._pre_put(item)
         at_capacity = self.size() == len(self.arr) - 1
         if at_capacity:
@@ -53,7 +53,7 @@ class Queue[T](BaseContainer[T]):
         self.tail = (self.tail + 1) % len(self.arr)
 
     def dequeue(self) -> T:
-        """TODO docs"""
+        """Retrieves the element at the head (front) of the queue"""
         self._pre_get()
         elem = self.arr[self.head]
         if isinstance(elem, Sentinel):

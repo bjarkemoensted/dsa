@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 import abc
-from typing import Hashable, Iterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Hashable, Iterator
 
 if TYPE_CHECKING:
     from dsa.graphs.graph_class import Graph
@@ -18,10 +19,9 @@ class EdgeViewBase[N: Hashable](abc.ABC):
     def __iter__(self) -> Iterator[tuple[N, N]]:
         raise NotImplementedError
 
+    @abc.abstractmethod
     def __len__(self) -> int:
-        # TODO be more sneaky here!!!
-        res = sum(1 for _ in self)
-        return res
+        raise NotImplementedError
 
     def __str__(self) -> str:
         return str(list(self))
@@ -57,41 +57,3 @@ class DirectedEdgeView[N: Hashable](EdgeViewBase[N]):
     def __len__(self) -> int:
         res = sum(len(neighbors) for neighbors in self.G._adj.values())
         return res
-
-
-class DegreeView[N: Hashable]:
-    def iterate_node_edges(
-        self,
-        node: N,
-        incoming: bool,
-        outgoing: bool,
-        weighted: bool
-        ) -> Iterator[tuple[N, int|float]]:
-
-        out_edges = ((other, (node, other)) for other in self.G._succ[node])
-        in_edges = ((other, (other, node)) for other in self.G._pred[node])
-        generators: list[Iterator[tuple[N, tuple[N, N]]]] = []
-        if outgoing:
-            generators.append(out_edges)
-        if incoming:
-            generators.append(in_edges)
-
-        degs: dict[N, float|int] = {}
-
-        for g in generators:
-            for other, (u, v) in g:
-                weight = self.G._adj[u][v]
-                w = weight if weighted else 1
-                degs[other] = degs.get(other, 0) + w
-
-        yield from degs.items()
-        
-    def _iter(self, node: N, weighted: bool=True) -> Iterator[tuple[N, int|float]]:
-        for neighbor, weight in self.G._adj.get(node, {}).items():
-            w = weight if weighted else 1
-            yield neighbor, w
-
-    def __init__(self, G: Graph[N]) -> None:
-        self.G = G
-
-
