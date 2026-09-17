@@ -33,3 +33,21 @@ def shortest_path_dijkstra[N](G: Graph[N], source: N, target: N) -> int|float:
                 queue.push(item=v, priority=g_tentative)
 
     raise NoPathError
+
+
+def has_path[N](G: Graph[N], source: N, target: N) -> bool:
+    """Determines whether a path from source to target exists on G.
+    Works using simple breadth-first search (BFS) - starting fro mthe source node,
+    it repeatedly add unvisited adjacent nodes, checking for the target node"""
+
+    visited: set[N] = set()
+    front = {source}
+
+    while front:
+        if target in front:
+            return True
+        # Update sets of visited and new nodes
+        visited |= front
+        front = {v for u in front for v, _ in G.successors(u) if v not in visited}
+
+    return False
