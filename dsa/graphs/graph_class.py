@@ -6,6 +6,7 @@ from typing import Any, ClassVar, Hashable, Iterable, Iterator, Mapping, Self
 import networkx as nx
 
 from dsa.graphs.exceptions import GraphError
+from dsa.graphs.views import DirectedEdgeView, EdgeView, EdgeViewBase
 
 type AttrType = Mapping[Any, object]
 
@@ -13,35 +14,19 @@ DEFAULT_EDGE_WEIGHT = 1
 _NETWORKX_WEIGHT_ATTRIBUTE = "weight"
 
 
-class EdgeView[N: Hashable]:
-    """TODO docs"""
-    
-    def __init__(self, G: Graph[N]) -> None:
-        self._G = G
-
-    def _iter_directed(self) -> Iterator[tuple[N, N]]:
-        yield from ((u, v) for u, d in self._G._adj.items() for v in d)
-
-    def _iter_undirected(self) -> Iterator[tuple[N, N]]:
-        seen: set[N] = set()
-        for u, d in self._G._adj.items():
-            for v in d:
-                if v not in seen:
-                    yield u, v
-                #
-            seen.add(u)
-
-    def __iter__(self) -> Iterator[tuple[N, N]]:
-        iterator_ = self._iter_directed if self._G.directed else self._iter_undirected
-        yield from iterator_()
-
-
 class Graph[N: Hashable]:
-    """TODO docs"""
+    """Represents a graph containing nodes-vertices, connected by links-edges.
+    This class focuses on logic for adding-removing nodes and edges, and updating their attributes.
+    Methods for discovering paths are defined as external functions that take a
+    graph instance as one of their arguments"""
 
     directed: ClassVar[bool] = False
     
-    def __init__(self, nodes: Iterable[N]=()) -> None:
+    def __init__(
+            self,
+            nodes: Iterable[N]=(),
+            edges: Iterable[tuple[N, N]|tuple[N, N, int|float]]=(),
+            ) -> None:
         self._adj: dict[N, dict[N, float]] = {}
 
         self._pred: dict[N, set[N]] = defaultdict(set)
@@ -50,8 +35,8 @@ class Graph[N: Hashable]:
         self._node_attrs: dict[N, dict[Hashable, object]] = defaultdict(dict)
         self._edge_attrs: dict[tuple[N, N], dict[Hashable, object]] = defaultdict(dict)
 
-        for node in nodes:
-            self.add_node(node)
+        self.add_nodes_from(nodes)
+        self.add_edges_from(edges)
 
     def add_node(self, node: N, attrs: AttrType|None=None) -> Self:
         """Adds a node to the graph. Arbitrary node attributes can be passed as keyword arguments"""
@@ -62,6 +47,11 @@ class Graph[N: Hashable]:
         self._adj[node] = {}
         if attrs:
             self._node_attrs[node].update(attrs)
+        return self
+
+    def add_nodes_from(self, nodes: Iterable[N]) -> Self:
+        for node in nodes:
+            self.add_node(node)
         return self
 
     def remove_node(self, node: N) -> Self:
@@ -93,20 +83,37 @@ class Graph[N: Hashable]:
         if attrs:
             self._edge_attrs[(u, v)].update(attrs)
 
-    def add_edge(self, u: N, v: N, weight: float, attrs: AttrType|None=None) -> Self:
+    def add_edge(self, u: N, v: N, weight: int|float|None=None, attrs: AttrType|None=None) -> Self:
         """Add an edge connect node u to node v.
         dist: The distance.
         **attrs: Arbitrary attributes of the edge"""
 
+        weight_ = 1 if weight is None else weight
         # Ensure nodes exist
         key = (u, v)
         for node in key:
             if node not in self:
                 self.add_node(node)
 
-        self._add_edge(u, v, weight=weight, attrs=attrs)
+        self._add_edge(u, v, weight=weight_, attrs=attrs)
         if not self.directed:
-            self._add_edge(v, u, weight=weight, attrs=attrs)
+            self._add_edge(v, u, weight=weight_, attrs=attrs)
+
+        return self
+
+    def add_edges_from(self, edges: Iterable[tuple[N, N]|tuple[N, N, int|float]]) -> Self:
+        """Adds multiple edges from an iterable. Each element must be either a 2-tuple (u, v),
+        or a 3-tuple (u, v, weight)"""
+
+        for edge in edges:
+            if len(edge) == 2:
+                u, v = edge
+                self.add_edge(u, v)
+            elif len(edge) == 3:
+                u, v, w = edge
+                self.add_edge(u, v, w)
+            else:
+                raise ValueError(f"Invalid edge tuple: {edge}")
 
         return self
 
@@ -126,13 +133,26 @@ class Graph[N: Hashable]:
     def __contains__(self, node: N) -> bool:
         return node in self._adj
 
-    def edges(self) -> EdgeView[N]:
-        return EdgeView(self)
+    def edges(self) -> EdgeViewBase[N]:
+        if self.directed:
+            return DirectedEdgeView(self)
+        else:
+            return EdgeView(self)
 
     def iter_edge_weights(self) -> Iterator[tuple[N, N, float|int]]:
         for u, v in self.edges():
             w = self._adj[u][v]
             yield u, v, w
+
+    def successors(self, node: N) -> Iterator[tuple[N, int|float]]:
+        for neighbor in self._succ[node]:
+            weight = self._adj[node][neighbor]
+            yield neighbor, weight
+
+    def predecessors(self, node: N) -> Iterator[tuple[N, int|float]]:
+        for pred in self._pred[node]:
+            weight = self._adj[pred][node]
+            yield pred, weight
 
     def neighbors_with_weights(self, node: N) -> Iterator[tuple[N, float|int]]:
         yield from (self._adj[node].items())
@@ -147,8 +167,15 @@ class Graph[N: Hashable]:
         return _as_networkx(self)
 
 
+class DiGraph[N: Hashable](Graph[N]):
+    directed = True
+
+
 def _initialize_equivalent_networkx_class[N: Hashable](G: Graph[N]) -> nx.Graph[N]:
+    """Determines the appropriate networkx graph class for a graph and instantiates it"""
     match G:
+        case DiGraph():
+            return nx.DiGraph()
         case Graph():
             return nx.Graph()
         case _:
@@ -156,6 +183,8 @@ def _initialize_equivalent_networkx_class[N: Hashable](G: Graph[N]) -> nx.Graph[
 
 
 def _as_networkx[N: Hashable](G: Graph[N]) -> nx.Graph[N]:
+    """Converts a graph object into a corresponding networkx graph"""
+
     # Initialize the networkx graph
     res = _initialize_equivalent_networkx_class(G)
 

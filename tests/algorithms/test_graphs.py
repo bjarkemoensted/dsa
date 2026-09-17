@@ -5,7 +5,7 @@ import networkx as nx
 
 from dsa.graphs import pathfinding, random_graphs
 from dsa.graphs.exceptions import NoPathError
-from dsa.graphs.graph_class import Graph
+from dsa.graphs.graph_class import Graph, DiGraph
 from dsa.utils.randomization import RandomSeeder, make_random_state
 
 
@@ -18,6 +18,8 @@ def iterate_random_pair_dists(
         n: int=20,
         seed: RandomSeeder|None=None
         ) -> Iterator[tuple[int, int, int|float|None]]:
+    """Given a graph, iterates over random pairs of nodes u, v, and the shortest distance from u to v."""
+
     rs = make_random_state(seed)
     nodes = list(G.nodes())
     for _ in range(n):
@@ -30,12 +32,34 @@ def iterate_random_pair_dists(
         yield u, v, dist
 
 
+def standard_networks(n: int, seed: RandomSeeder) -> Iterator[Graph]:
+    """Produces some typical graphs which can be re-used for various tests"""
+
+    rs = make_random_state(seed)
+    # Erdos-renyi graph
+    yield random_graphs.erdos_renyi(n=n, p=0.2, seed=rs)
+    # Sparse ER graph
+    yield random_graphs.erdos_renyi(n=n, p=0.02, seed=rs)
+    # Weighted ER
+    yield random_graphs.erdos_renyi(n=n, p=0.5, seed=rs, weights=lambda: rs.randint(0, 20))
+    # Directed ER
+    yield random_graphs.erdos_renyi(n=n, p=0.3, seed=rs, directed=True)
+
+    # Graph with a self-edge
+    yield Graph(nodes=[1,2,3]).add_edge(1, 1, weight=1)
+    yield DiGraph(nodes=[1,2,3]).add_edge(1, 1, weight=1)
+
+
+def cases(n: int=100, seed: RandomSeeder=0) -> list[tuple[Graph, nx.Graph]]:
+    res = [(G, G.to_networkx()) for G in standard_networks(n=n, seed=seed)]
+    return res
+
+
 class TestGraphs(unittest.TestCase):
     graph_pairs: list[tuple[Graph, nx.Graph]]
 
     def setUp(self) -> None:
-        graphs: list[Graph] = [random_graphs.erdos_renyi(n=100, p=0.2, seed=0)]
-        self.graph_pairs = [(G, G.to_networkx()) for G in graphs]
+        self.graph_pairs = cases()
 
         return super().setUp()
 
@@ -54,17 +78,21 @@ class TestGraphs(unittest.TestCase):
         for G, G_nx in self.graph_pairs:
             self.check_graph_structure(G, G_nx)
 
+    def test_edge_view(self) -> None:
+        """Check that edge views behave as expected"""
+        for G, _ in self.graph_pairs:
+            edges = G.edges()
+            n = len(edges)
+            n_brute = sum(1 for _ in edges)
+            self.assertEqual(n, n_brute)
+
             
 class TestPathFinding(unittest.TestCase):
     graph_pairs: list[tuple[Graph, nx.Graph]]
 
     def setUp(self) -> None:
         self.rs = make_random_state(0)
-        graphs: list[Graph] = [
-            random_graphs.erdos_renyi(n=100, p=0.02, seed=self.rs),
-            random_graphs.erdos_renyi(n=100, p=0.5, seed=self.rs, weights=lambda: self.rs.randint(0, 20))
-        ]
-        self.graph_pairs = [(G, G.to_networkx()) for G in graphs]
+        self.graph_pairs = cases()
         
         return super().setUp()
 
