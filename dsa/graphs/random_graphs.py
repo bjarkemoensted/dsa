@@ -1,10 +1,9 @@
 """Tooling for initializing various random graphs"""
 
+import numpy as np
 from typing import Callable, Iterator, Sequence
 
-import numpy as np
-
-from dsa.graphs.graph_class import DEFAULT_EDGE_WEIGHT, DiGraph, Graph
+from dsa.graphs.graph_class import DEFAULT_EDGE_WEIGHT, Graph, DiGraph
 from dsa.utils.randomization import RandomSeeder, make_random_state, make_random_state_numpy
 
 type WeightGenerator = Callable[[], float|int]
@@ -46,6 +45,9 @@ def erdos_renyi(
             continue
         # Determine weight an add edge
         weight = weights() if callable(weights) else weights
+        # If the graph is undirected, randomly add v->u instead of u->v to check edge logic
+        if not directed and rs.uniform(0.0, 1.0) <= 0.5:
+            u, v = v, u
         G.add_edge(u, v, weight)
 
     return G
