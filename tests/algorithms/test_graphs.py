@@ -5,7 +5,7 @@ import networkx as nx
 
 from dsa.graphs import pathfinding, random_graphs
 from dsa.graphs.exceptions import NoPathError
-from dsa.graphs.graph_class import Graph, DiGraph
+from dsa.graphs.graph_class import DiGraph, Graph
 from dsa.utils.randomization import RandomSeeder, make_random_state
 
 

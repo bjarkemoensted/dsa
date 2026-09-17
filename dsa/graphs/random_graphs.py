@@ -1,10 +1,11 @@
 """Tooling for initializing various random graphs"""
 
-
 from typing import Callable, Iterator, Sequence
 
-from dsa.graphs.graph_class import DEFAULT_EDGE_WEIGHT, Graph, DiGraph
-from dsa.utils.randomization import RandomSeeder, make_random_state
+import numpy as np
+
+from dsa.graphs.graph_class import DEFAULT_EDGE_WEIGHT, DiGraph, Graph
+from dsa.utils.randomization import RandomSeeder, make_random_state, make_random_state_numpy
 
 type WeightGenerator = Callable[[], float|int]
 
@@ -23,7 +24,7 @@ def erdos_renyi(
         seed: RandomSeeder=None,
         weights: WeightGenerator|float|int=DEFAULT_EDGE_WEIGHT,
         directed: bool=False
-        ) -> Graph:
+        ) -> Graph[int]:
     """Generates an Erdős-Rényi random graph.
     n: Number of nodes
     p: the probability of realization of an edge (u, v).
@@ -55,10 +56,48 @@ def barabasi_albert(
         m: int,
         seed: RandomSeeder=None,
         weights: WeightGenerator|float|int=DEFAULT_EDGE_WEIGHT,
-        ) -> Graph:
+        ) -> Graph[int]:
+    """Generates a Barabási-Albert graph, with n nodes.
+    Each new node is attached to (up to) m existing ones, with probabilities that
+    are propoertional to the current degree of each node (preferential attachment)."""
 
-    rs = make_random_state(seed)
-    import networkx as nx
-    G = nx.Graph()
-    G.degree
-    raise NotImplementedError
+    # Initialize randomstate (using numpy for non-uniform probability distributions)
+    rs = make_random_state_numpy(seed)
+    # Initialize the graph
+    nodes = list(range(n))
+    G = Graph(nodes=nodes)
+    # Running tally of the degree of each node, just to avoid recomputations
+    p_weights_running = np.array([0.0 for _ in nodes])
+
+    # Skip the first node because we won't have any existing nodes ot connect to
+    for i in range(1, n):
+        new_node = nodes[i]
+        # Inclusion mask, to avoid connecting twice to the same node
+        include = np.array([1.0 for _ in range(n)])
+
+        # Choose up to m nodes to connect to
+        n_choose = min(m, i)
+
+        for _ in range(n_choose):
+            # Get the probability weightings
+            p = p_weights_running*include
+
+            # If all weightings are 0, we haven't added any links yet, so just choose the first node
+            if np.isclose(sum(p), 0.0):
+                p[0] = 1.0
+
+            # Normalize the probabilities
+            norm_factor = 1.0/sum(p)
+            p *= norm_factor
+
+            # Choose a node according to the probabilities, and connect
+            other_ind = rs.choice(n, p=p)
+            weight = weights() if callable(weights) else weights
+            G.add_edge(new_node, nodes[other_ind], weight=weight)
+            # Exclude the newly linked node to avoid attempts to connect to it again
+            include[other_ind] = 0.0
+            # Update running probability weightings
+            p_weights_running[i] = G.degree(nodes[i])
+            p_weights_running[other_ind] = G.degree(nodes[other_ind])
+
+    return G

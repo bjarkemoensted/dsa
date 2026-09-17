@@ -2,6 +2,8 @@
 
 import random
 
+import numpy as np
+
 type RandomSeeder = random.Random | int | None
 
 
@@ -15,4 +17,12 @@ def make_random_state(rs: RandomSeeder) -> random.Random:
 
     res = random.Random()
     res.seed(rs)
+    return res
+
+
+def make_random_state_numpy(rs: RandomSeeder) -> np.random.RandomState:
+    """Creats a numpy RandomState object"""
+
+    seed = rs.randint(0, 2**32 - 1) if isinstance(rs, random.Random) else rs
+    res = np.random.RandomState(seed=seed)
     return res
