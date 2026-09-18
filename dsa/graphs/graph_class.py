@@ -6,7 +6,7 @@ from typing import Any, ClassVar, Hashable, Iterable, Iterator, Mapping, Self
 import networkx as nx
 
 from dsa.graphs import views
-from dsa.graphs.exceptions import GraphError
+from dsa.graphs.exceptions import GraphError, NoPathError
 
 type AttrType = Mapping[Any, object]
 
@@ -173,6 +173,16 @@ class Graph[N: Hashable]:
 
     def to_networkx(self) -> nx.Graph[N]:
         return _as_networkx(self)
+
+    def compute_path_length(self, path: Iterable[tuple[N, N]]) -> int|float:
+        """Takes a path, represented by an iterable of tuples of nodes (u, v).
+        Returns the length of the path, raising a NoPathError if any edges in a path do not exist"""
+        parts = (self._adj[u][v] for u, v in path)
+        try:
+            return sum(parts)
+        except KeyError:
+            missing = [(u, v) for u, v in path if v not in self._adj[u]]
+            raise NoPathError(f"No such path: Missing edges: {missing}")
 
 
 class DiGraph[N: Hashable](Graph[N]):
