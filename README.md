@@ -15,6 +15,8 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Heapsort](#heapsort)
   - [Mergesort](#mergesort)
   - [Others](#others)
+- [Graphs](#graphs)
+  - [Dijkstra's algorithm](#dijkstras-algorithm)
 - [Automata \& Formal Languages](#automata--formal-languages)
   - [Regular languages \& Finite State Automata](#regular-languages--finite-state-automata)
     - [Finite State Automata](#finite-state-automata)
@@ -263,6 +265,29 @@ for func in funcs:
     assert ordered == func(A, reverse=True)[::-1]
 ```
 
+# Graphs
+This sections describes how graphs are implemented, and goes over a few graph algorithms.
+
+**Terminology:** 
+The terminology regarding graphs can be a bit messy, due to the field having origins in mathematical graph theory,which uses the terms 'graph', 'vertex', and 'edge', and network science, which often uses 'network', 'node', and 'link'.
+I typically lean towards the terminology used in the networkx library, using 'graph' and 'edge', but 'node' rather than 'vertex'.
+
+**Implementation:**
+Graphs are implemented via the `Graph` class.
+The structure of a graph is represented by a nested dictionary `{u1: {v1: d1, v2: d2, ...}, ...}`, where each key `ui` in the outer dict represents a node, and the keys and values of the inner dict represents nodes connected to `ui` with an edge, and the weight of the edge, respectively. A `DiGraph` subclass is available for representing directed graphs.
+
+Edges are always represented with a weight under the hood - unweighted graphs can simply use the default weight of 1.
+To allow efficient backwards iteration, `Graph` instances automatically maintain a set of precessor nodes.
+
+Some implementation details are fairly similar to networkx, such as utilizing various 'view' class for the nodes and edges of a graph.
+This allows one to compartmentalize how the effect on the graph type (e.g. directed vs. undirected) on nodes and edges respectively.
+For example, the methods `Graph.nodes` and `Graph.edges` simply return a `NodeView` or `EdgeView` instance, which handles stuff like iteration. This allows the graph class to only have to worry about returning the correct kind of view, and not have to spell out exactly how to e.g. iterate over edges.
+
+**Sources:** I rarely follow any specific textbook closely for graph stuff. For the `Graph` class implementation, I've looked to networkx and tried to be relatively consistent with that, mainly to make it easier to test against networkx algorithms.
+For algorithms, many are based on my notes from taking Tim Roughgarden's two algorithm courses on Coursera.
+
+## Dijkstra's algorithm
+TODO write stuff
 
 # Automata & Formal Languages
 This section concerns formal language theory, along with the associated automata theory.
