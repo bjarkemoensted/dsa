@@ -1,6 +1,6 @@
 import unittest
 from dataclasses import dataclass, field
-from functools import cache
+from functools import cache, partial
 from typing import Hashable, Iterable, Iterator, Protocol
 
 import networkx as nx
@@ -13,6 +13,9 @@ from dsa.utils.randomization import RandomSeeder, make_random_state
 
 @dataclass
 class Case[N]:
+    """This just holds some graph that we want to run some tests on, and exposes stuff
+    like the equivalent networkx graph, and shortest distances"""
+
     title: str
     G: Graph[N]
     G_nx: nx.Graph[N] = field(init=False)
@@ -24,7 +27,8 @@ class Case[N]:
 
 
 class PathFinder(Protocol):
-    def __call__[N: Hashable](self, G: Graph[N], source: N, target: N) -> int|float: ...
+    """Protocol for a callable which finds some path given source"""
+    def __call__[N: Hashable](self, G: Graph[N], source: N, target: N) -> list[N]: ...
 
 
 def _iterate_random_pairs[N](nodes: Iterable[N], n: int=20, seed: RandomSeeder|None=None) -> Iterator[tuple[N, N]]:
@@ -119,11 +123,12 @@ class TestPathFinding(unittest.TestCase):
                     with self.assertRaises(NoPathError):
                         pathfinder(case.G, u, v)
                 else:
-                    shortest_found = pathfinder(case.G, u, v)
-                    self.assertEqual(shortest_found, dist)
+                    path = pathfinder(case.G, u, v)
+                    shortest_found = case.G.compute_path_length(path)
+                    self.assertEqual(shortest_found, dist, msg=f"Error in case {case.title}")
 
     def test_dijkstra(self) -> None:
-        self.check_find_shortest_path(pathfinding.dijkstra_path_length)
+        self.check_find_shortest_path(pathfinding.dijkstra_path)
 
         # Find the shortest path (or one of them) for some connected pairs, and check the path length
         for case in self.cases:
@@ -135,7 +140,9 @@ class TestPathFinding(unittest.TestCase):
                 path_length = case.G.compute_path_length(path)
                 self.assertEqual(path_length, dist)
 
-
+    def test_a_star(self) -> None:
+        pathfinder = partial(pathfinding.a_star, heuristic=lambda n: 0)
+        self.check_find_shortest_path(pathfinder)
 
     def test_single_source_dijkstra(self) -> None:
         for case in self.cases:

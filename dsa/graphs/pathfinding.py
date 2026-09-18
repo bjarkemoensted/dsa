@@ -1,4 +1,4 @@
-from typing import Callable, Iterator
+from typing import Callable, Iterator, Literal, overload
 
 from dsa.data_structures.linear.priority_queue import PriorityQueue
 from dsa.graphs.exceptions import NoPathError
@@ -124,3 +124,81 @@ def has_path[N](G: Graph[N], source: N, target: N) -> bool:
         front = {v for u in front for v, _ in G.successors(u) if v not in visited}
 
     return False
+
+@overload
+def a_star[N](
+        G: Graph[N],
+        source: N,
+        target: N,
+        heuristic: Callable[[N], int|float],
+        return_path: bool=True
+        ) -> list[N]: ...
+@overload
+def a_star[N](
+        G: Graph[N],
+        source: N,
+        target: N,
+        heuristic: Callable[[N], int|float],
+        return_path: Literal[False]=...
+        ) -> int|float: ...
+def a_star[N](
+        G: Graph[N],
+        source: N,
+        target: N,
+        heuristic: Callable[[N], int|float],
+        return_path: bool=True
+        ) -> list[N]|int|float:
+    """A* algorithm for shortest path from a single source to a single target.
+    Accepts a heuristic callable which must take a single node, and return a lower
+    bound on the distance from that node to the target. For example, if the nodes on the
+    graph are located on a plane, the euclidean distance can be used.
+    It works similarly to Dijkstra, except the priority queue containing the nodes works
+    slightly differently. In Dijkstra, the queue is keyed by the distance g to the nodes.
+    In A*, a heuristic function is used to provide a lower bound h on the remaining part of the path,
+    and the queue is then keyed by the lower bound f = g + h on a path through each node.
+    This ensures that when the target node is popped from the heap, a shortest path has been found,
+    as any path which remains to be found will have at least the same distance.
+    A* reduces to Dijkstra's algorithm if the heuristic function returns 0 for all nodes.
+    return_path can be set to False to return only the path length."""
+
+    # Note the current shortest distance found to any other node
+    g0 = 0
+    d_g: dict[N, int|float] = {source: g0}
+
+    # Add the source node to the priority queue, keyed by its lower bound
+    h0 = heuristic(source)
+    f0 = g0 + h0
+    queue: PriorityQueue[N] = PriorityQueue()
+    queue.push(source, priority=f0)
+
+    # Keep track of how we got to each node, for path reconstruction
+    camefrom: dict[N, N] = {}
+
+    while queue:
+        u = queue.pop()
+
+        # If we find the target, return the path/length
+        if u == target:
+            # If not returning path, just return the length
+            if not return_path:
+                return d_g[u]
+            path = [u]
+
+            # Otherwise, reconstruct the path
+            while path[-1] in camefrom:
+                path.append(camefrom[path[-1]])
+            path.reverse()
+            return path
+
+        # Look at the neighbors of u
+        for v, delta in G.successors(u):
+            g = d_g[u] + delta
+            improved = g < d_g.get(v, float("inf"))
+            if improved:
+                d_g[v] = g
+                h = heuristic(v)
+                f = g + h
+                queue.push(v, priority=f)
+                camefrom[v] = u
+
+    raise NoPathError
