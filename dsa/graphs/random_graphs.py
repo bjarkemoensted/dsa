@@ -1,9 +1,10 @@
 """Tooling for initializing various random graphs"""
 
-import numpy as np
 from typing import Callable, Iterator, Sequence
 
-from dsa.graphs.graph_class import DEFAULT_EDGE_WEIGHT, Graph, DiGraph
+import numpy as np
+
+from dsa.graphs.graph_class import DEFAULT_EDGE_WEIGHT, DiGraph, Graph
 from dsa.utils.randomization import RandomSeeder, make_random_state, make_random_state_numpy
 
 type WeightGenerator = Callable[[], float|int]
