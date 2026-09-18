@@ -12,7 +12,7 @@ NIL = Sentinel()
 class Node[T]:
     """A node in a linked list.
     The value stored in the node is the key attribute.
-    prev and next attributes point to the predessesor and successor nodes, respectively."""
+    prev and next attributes point to the predecessor and successor nodes, respectively."""
 
     def __init__(self, key: T|Sentinel) -> None:
         """Initialize a node. If key is not provided, None is used initially.
@@ -47,7 +47,7 @@ class Node[T]:
         return repr(self)
 
     def _iterate_direction(self, forward: bool=True) -> Iterator[Node[T]]:
-        """Iterates over this node and all successors (if forward is True) or predessesors.
+        """Iterates over this node and all successors (if forward is True) or predecessors.
         Stops iteration if we run out of nodes, or if we arrive back at the starting node."""
         
         node = self
