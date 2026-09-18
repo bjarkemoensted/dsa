@@ -16,6 +16,7 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Mergesort](#mergesort)
   - [Others](#others)
 - [Graphs](#graphs)
+  - [Random graphs](#random-graphs)
   - [Dijkstra's algorithm](#dijkstras-algorithm)
 - [Automata \& Formal Languages](#automata--formal-languages)
   - [Regular languages \& Finite State Automata](#regular-languages--finite-state-automata)
@@ -286,8 +287,24 @@ For example, the methods `Graph.nodes` and `Graph.edges` simply return a `NodeVi
 **Sources:** I rarely follow any specific textbook closely for graph stuff. For the `Graph` class implementation, I've looked to networkx and tried to be relatively consistent with that, mainly to make it easier to test against networkx algorithms.
 For algorithms, many are based on my notes from taking Tim Roughgarden's two algorithm courses on Coursera.
 
+## Random graphs
+A few standard methods are available for generating random graphs.
+These are located in the `random_graphs` submodule, and include Erdős-Rényi graphs, and Barabási-Albert graphs.
+
+Erdős-Rényi graphs are graphs with a set number of nodes $n$, where each of the $\sim\!n^2$ edges are reqlized with some probability $p$.
+
+Barabási-Albert graphs are generated iteratively, with each new node attaching to a fixed number $m$ of the existing ones using a preferential attachment mechanism, where the probability of attaching to each existing node $v$ is proportional to the degree (number of edges) of $v$.
+
+All methods for random graph generation support assigning fixed or random weights to edges, and passing a random seed or a `random.Random` instance to produce deterministic pseudorandom graphs.
+
+
 ## Dijkstra's algorithm
-TODO write stuff
+Dijkstra's algorithm finds the shortest path from a source node to one or more target nodes, by starting with an initial path consisting of only the source node, then repeatedly attempting to expand the currently shortest path with the neighbors of the node at the head of the path.
+The nodes at the head of each path are stored on a [priority queue](#priority-queue), using the path length as the priority.
+Negative edge weights are not allowed in this algorithm.
+Because edges are non-negative, whenever a new node is popped from the queue, the shortest path from the source to that node has been found (because the remainder of the queue has distances greater than or equal to the one found, and will only grow when adding more edges).
+
+TODO examples
 
 # Automata & Formal Languages
 This section concerns formal language theory, along with the associated automata theory.
