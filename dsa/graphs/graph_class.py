@@ -157,18 +157,19 @@ class Graph[N: Hashable]:
             yield neighbor, weight
 
     def predecessors(self, node: N) -> Iterator[tuple[N, int|float]]:
-        for pred in self._pred[node]:
+        others = self._pred[node] if self.directed else self._succ[node]
+        for pred in others:
             weight = self._adj[pred][node]
             yield pred, weight
 
-    def neighbors_with_weights(self, node: N) -> Iterator[tuple[N, float|int]]:
-        yield from (self._adj[node].items())
-
     def neighbors(self, node: N) -> Iterator[N]:
-        yield from (v for v, _ in self.neighbors_with_weights(node))
+        yield from self._succ[node]
 
     def nodes(self) -> Iterator[N]:
         yield from self._adj
+
+    def __len__(self) -> int:
+        return len(self._adj)
 
     def to_networkx(self) -> nx.Graph[N]:
         return _as_networkx(self)
