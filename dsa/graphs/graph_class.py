@@ -5,8 +5,8 @@ from typing import Any, ClassVar, Hashable, Iterable, Iterator, Mapping, Self
 
 import networkx as nx
 
+from dsa.graphs import views
 from dsa.graphs.exceptions import GraphError
-from dsa.graphs.views import DirectedEdgeView, EdgeView, EdgeViewBase
 
 type AttrType = Mapping[Any, object]
 
@@ -133,11 +133,11 @@ class Graph[N: Hashable]:
     def __contains__(self, node: N) -> bool:
         return node in self._adj
 
-    def edges(self) -> EdgeViewBase[N]:
+    def edges(self) -> views.EdgeViewBase[N]:
         if self.directed:
-            return DirectedEdgeView(self)
+            return views.DirectedEdgeView(self)
         else:
-            return EdgeView(self)
+            return views.EdgeView(self)
 
     def degree(self, node: N, weighted: bool=True) -> int|float:
         weights = (w for _, w in self.successors(node))
@@ -165,8 +165,8 @@ class Graph[N: Hashable]:
     def neighbors(self, node: N) -> Iterator[N]:
         yield from self._succ[node]
 
-    def nodes(self) -> Iterator[N]:
-        yield from self._adj
+    def nodes(self) -> views.NodeView[N]:
+        return views.NodeView(self)
 
     def __len__(self) -> int:
         return len(self._adj)
