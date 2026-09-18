@@ -30,8 +30,8 @@ class Graph[N: Hashable]:
             ) -> None:
         self._adj: dict[N, dict[N, float]] = {}
 
+        # Set of predecessor nodes for each node {v: {u1, u2, ...}} means u1 and u2 link to v
         self._pred: dict[N, set[N]] = defaultdict(set)
-        self._succ: dict[N, set[N]] = defaultdict(set)
         
         self._node_attrs: dict[N, dict[Hashable, object]] = defaultdict(dict)
         self._edge_attrs: dict[tuple[N, N], dict[Hashable, object]] = defaultdict(dict)
@@ -58,9 +58,9 @@ class Graph[N: Hashable]:
     def remove_node(self, node: N) -> Self:
         del self._adj[node]
 
-        for other in self._succ.pop(node, ()):
+        for other, _ in self.successors(node):
             self._remove_edge(node, other)
-        for other in self._pred.pop(node, ()):
+        for other, _ in self.predecessors(node):
             self._remove_edge(other, node)
         self._node_attrs.pop(node, None)
         return self
@@ -74,8 +74,6 @@ class Graph[N: Hashable]:
             self._adj[u][v] = weight
         else:
             self._adj[u] = {v: weight}
-
-        self._succ[u].add(v)
 
         if self.directed:
             self._pred[v].add(u)
@@ -153,18 +151,16 @@ class Graph[N: Hashable]:
             yield u, v, w
 
     def successors(self, node: N) -> Iterator[tuple[N, int|float]]:
-        for neighbor in self._succ[node]:
-            weight = self._adj[node][neighbor]
-            yield neighbor, weight
+        yield from self._adj[node].items()
 
     def predecessors(self, node: N) -> Iterator[tuple[N, int|float]]:
-        others = self._pred[node] if self.directed else self._succ[node]
+        others = self._pred[node] if self.directed else self._adj[node]
         for pred in others:
             weight = self._adj[pred][node]
             yield pred, weight
 
     def neighbors(self, node: N) -> Iterator[N]:
-        yield from self._succ[node]
+        yield from self._adj[node]
 
     def nodes(self) -> views.NodeView[N]:
         return views.NodeView(self)
