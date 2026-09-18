@@ -1,7 +1,7 @@
 import unittest
 from dataclasses import dataclass, field
 from functools import cache
-from typing import Hashable, Iterator, Protocol
+from typing import Hashable, Iterable, Iterator, Protocol
 
 import networkx as nx
 
@@ -27,12 +27,13 @@ class PathFinder(Protocol):
     def __call__[N: Hashable](self, G: Graph[N], source: N, target: N) -> int|float: ...
 
 
-def _iterate_random_pairs[N](nodes: list[N], n: int=20, seed: RandomSeeder|None=None) -> Iterator[tuple[N, N]]:
+def _iterate_random_pairs[N](nodes: Iterable[N], n: int=20, seed: RandomSeeder|None=None) -> Iterator[tuple[N, N]]:
     """Iterate over random pairs of elements from the input list"""
     rs = make_random_state(seed)
+    nodes_ = list(nodes)
 
     for _ in range(n):
-        u, v = rs.choices(nodes, k=2)
+        u, v = rs.choices(nodes_, k=2)
         yield u, v
 
 
@@ -122,7 +123,19 @@ class TestPathFinding(unittest.TestCase):
                     self.assertEqual(shortest_found, dist)
 
     def test_dijkstra(self) -> None:
-        self.check_find_shortest_path(pathfinding.shortest_path_dijkstra)
+        self.check_find_shortest_path(pathfinding.dijkstra_path_length)
+
+        # Find the shortest path (or one of them) for some connected pairs, and check the path length
+        for case in self.cases:
+            # Only test some random connected pairs so the tests don't take forever
+            checks = [(u, v, dist_) for u, d in case.dists.items() for v, dist_ in d.items()]
+            selected = self.rs.choices(checks, k=20)
+            for u, v, dist in selected:
+                path = pathfinding.dijkstra_path(case.G, source=u, target=v)
+                path_length = case.G.compute_path_length(path)
+                self.assertEqual(path_length, dist)
+
+
 
     def test_single_source_dijkstra(self) -> None:
         for case in self.cases:
