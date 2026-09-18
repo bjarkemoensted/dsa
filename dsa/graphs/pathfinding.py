@@ -46,7 +46,7 @@ def _iterate_dijkstra_path_lengths[N](
                 queue.push(item=v, priority=g_tentative)
 
 
-def shortest_path_dijkstra[N](G: Graph[N], source: N, target: N) -> int|float:
+def dijkstra_path_length[N](G: Graph[N], source: N, target: N) -> int|float:
     """Uses Dijkstra's algorithm to find the shortest path from source to target."""
 
     for node, dist in _iterate_dijkstra_path_lengths(from_=source, neighbor_getter=G.successors):
@@ -55,6 +55,46 @@ def shortest_path_dijkstra[N](G: Graph[N], source: N, target: N) -> int|float:
         
     raise NoPathError
 
+
+def dijkstra_path[N](G: Graph[N], source: N, target: N) -> list[N]:
+    
+    queue: PriorityQueue[N] = PriorityQueue()
+    d0 = 0
+    d_g: dict[N, int|float] = {source: d0}  # Shortest path to every node encountered
+    # Initially, only the shortest path to the source is known (distance 0)
+    queue.push(item=source, priority=d0)
+    camefrom: dict[N, N] = {}
+
+    while queue:
+        # Consider the currently shortest distance found to any node
+        f, u = queue.pop_element()
+        shortest = d_g[u]
+        
+        # If a shorter distance to u has been found since adding it to the queue, skip it
+        if f > shortest:
+            continue
+
+        # We're done if we pop the target node
+        if u == target:
+            # Reconstruct the (reverse) path
+            path = [u]
+            while path[-1] in camefrom:
+                path.append(camefrom[path[-1]])
+            # Return the path
+            path.reverse()
+            return path
+
+        for v, delta in G.successors(u):            
+            # Path length to v via u
+            g_tentative = d_g[u] + delta
+            # Put v on the queue if this path beats the current record to v
+            improved = g_tentative < d_g.get(v, float("inf"))
+            if improved:
+                d_g[v] = g_tentative
+                queue.push(item=v, priority=g_tentative)
+                camefrom[v] = u
+
+    raise NoPathError
 
 def single_source_dijkstra_path_lengths[N](G: Graph[N], source: N) -> dict[N, int|float]:
     dists = _iterate_dijkstra_path_lengths(from_=source, neighbor_getter=G.successors)

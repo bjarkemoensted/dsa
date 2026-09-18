@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from itertools import pairwise
 from typing import Any, ClassVar, Hashable, Iterable, Iterator, Mapping, Self
 
 import networkx as nx
@@ -174,16 +175,18 @@ class Graph[N: Hashable]:
     def to_networkx(self) -> nx.Graph[N]:
         return _as_networkx(self)
 
-    def compute_path_length(self, path: Iterable[tuple[N, N]]) -> int|float:
-        """Takes a path, represented by an iterable of tuples of nodes (u, v).
+    def compute_path_length(self, path: Iterable[N]) -> int|float:
+        """Takes a path, represented by an iterable of nodes..
         Returns the length of the path, raising a NoPathError if any edges in a path do not exist"""
-        parts = (self._adj[u][v] for u, v in path)
-        try:
-            return sum(parts)
-        except KeyError:
-            missing = [(u, v) for u, v in path if v not in self._adj[u]]
-            raise NoPathError(f"No such path: Missing edges: {missing}")
 
+        res: int|float = 0
+        for u, v in pairwise(path):
+            try:
+                res += self._adj[u][v]
+            except KeyError as e:
+                raise NoPathError(f"Path contained missing edge: {u} -> {v}") from e
+
+        return res
 
 class DiGraph[N: Hashable](Graph[N]):
     directed = True
