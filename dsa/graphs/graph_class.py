@@ -146,9 +146,8 @@ class Graph[N: Hashable]:
             return sum(1 for _ in weights)
 
     def iter_edge_weights(self) -> Iterator[tuple[N, N, float|int]]:
-        for u, v in self.edges():
-            w = self._adj[u][v]
-            yield u, v, w
+        for u in self.nodes():
+            yield from ((u, v, w) for v, w in self.successors(u))
 
     def successors(self, node: N) -> Iterator[tuple[N, int|float]]:
         yield from self._adj[node].items()
@@ -215,7 +214,8 @@ def _as_networkx[N: Hashable](G: Graph[N]) -> nx.Graph[N]:
         res.add_node(node, **node_attrs)
 
     # Add the edges
-    for u, v, weight in G.iter_edge_weights():
+    edges = ((u, v, G._adj[u][v]) for u, v in G.edges())
+    for u, v, weight in edges:
         edge_attrs: dict[str, Any] = {_NETWORKX_WEIGHT_ATTRIBUTE: weight}
         for k_, v_ in G._edge_attrs[(u, v)].items():
             if not isinstance(k_, str):
