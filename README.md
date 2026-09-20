@@ -18,6 +18,7 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
 - [Graphs](#graphs)
   - [Random graphs](#random-graphs)
   - [Dijkstra's algorithm](#dijkstras-algorithm)
+  - [A\*](#a)
 - [Automata \& Formal Languages](#automata--formal-languages)
   - [Regular languages \& Finite State Automata](#regular-languages--finite-state-automata)
     - [Finite State Automata](#finite-state-automata)
@@ -297,6 +298,19 @@ Barabási-Albert graphs are generated iteratively, with each new node attaching 
 
 All methods for random graph generation support assigning fixed or random weights to edges, and passing a random seed or a `random.Random` instance to produce deterministic pseudorandom graphs.
 
+```python
+from dsa.graphs import random_graphs
+
+G_ER = random_graphs.erdos_renyi(n=100, p=0.1, seed=0)
+assert len(G_ER) == 100
+
+G_BA = random_graphs.barabasi_albert(n=100, m=10, seed=0)
+assert len(G_BA) == 100
+
+# The first 10 nodes link to 0 + 1 + ... + 9 = 45 nodes
+assert len(G_BA.edges()) == 945
+```
+
 
 ## Dijkstra's algorithm
 Dijkstra's algorithm finds the shortest path from a source node to one or more target nodes, by starting with an initial path consisting of only the source node, then repeatedly attempting to expand the currently shortest path with the neighbors of the node at the head of the path.
@@ -304,7 +318,96 @@ The nodes at the head of each path are stored on a [priority queue](#priority-qu
 Negative edge weights are not allowed in this algorithm.
 Because edges are non-negative, whenever a new node is popped from the queue, the shortest path from the source to that node has been found (because the remainder of the queue has distances greater than or equal to the one found, and will only grow when adding more edges).
 
-TODO examples
+```python
+from dsa.graphs import Graph, dijkstra_path, dijkstra_path_length
+
+edges: list[tuple[int, int]] = [(0, 1), (1, 2), (2, 3), (3, 4)]
+G = Graph(edges=edges)
+
+length = dijkstra_path_length(G, 0, 4)
+
+assert length == 4
+
+path = dijkstra_path(G, 0, 4)
+assert path == [0, 1, 2, 3, 4]
+assert G.compute_path_length(path) == length
+
+G.add_edge(4, 5, weight=10)
+assert dijkstra_path_length(G, 0, 5) == 14
+```
+Because Dijkstra works be expanding the currentls shortest path from a source node, it can also generate all shortest distances from a single source note.
+This is implemented in the `single_source_dijkstra_path_lengths` function, which returns a dict with target nodes as keys, and shortest path lengths as values.
+Because the `Graph` class also stores predecessor nodes, the algorithm can also run in reverse, starting from a single target and branching out to return the shortest path from any source node to the target.
+This is the `single_target_dijkstra_path_lengths` function.
+
+<!--pytest-codeblocks:cont-->
+```python
+from dsa.graphs import (
+    DiGraph,
+    single_source_dijkstra_path_lengths,
+    single_target_dijkstra_path_lengths
+)
+
+DG = DiGraph(edges=edges)
+assert single_source_dijkstra_path_lengths(DG, 2) == {2: 0, 3: 1, 4: 2}
+assert single_target_dijkstra_path_lengths(DG, 2) == {2: 0, 1: 1, 0: 2}
+```
+
+## A*
+The A* ("A star") algorithm works very similarly to Dijkstra.
+Similarly to Dijkstra, it starts with a single source note, and repeatedly expands the current 'best candidate' for the shortest path.
+Whereas Dijkstra expands the currently shortest path, A* uses a heuristic function $h$ to determine a lower bound on the remaining length of each candidate path.
+The current length of the candidate path, plus the lower bound on the remainder, gives a lower bound for the entire path length.
+This lower bound is then used as the key for the priority queue on which the head nodes of the candidate paths are stored.
+
+A simple intuitive example is looking for a shortest path from a source node $a$ to a target $b$ in a network of roads.
+Since the shortest possible distance between two points on a plane cannot be shorter than a straight line connecting them, a good heuristic function for a point $x$ is $h(x) = \left| \mathbf{b - x} \right|$.
+The effect of including the heuristic function is that paths going in the 'right' direction are expanded earlier - for example if the target node $b$ is located directly  north of the source node $a$, paths heading in northern directions will be expanded more rapidly.
+
+If no lower bound can be provided ($h(x) = 0$ for all nodes $x$), A* becomes equivalent to Dijkstra, as the lower bound on the total path lengths just becomes the current path length.
+
+A* is implemented in a single function which returns the nodes shortest path, unless `return_path` is set to False, in which case the path length is returned:
+
+```python
+import random
+from dsa.graphs import DiGraph, a_star, dijkstra_path_length
+
+rs = random.Random()
+rs.seed(0)
+gridsize = 100
+n_nodes = 100
+p_link = 0.3
+
+type Point = tuple[int, int]
+
+coords = [(rs.randint(0, gridsize), rs.randint(0, gridsize)) for _ in range(n_nodes)]
+
+
+def dist(a: Point, b: Point) -> float:
+    res = sum((cb - ca)**2 for ca, cb in zip(a, b, strict=True))**0.5
+    return res
+
+
+G = DiGraph(nodes=coords)
+# Build an Erdős-Rényi type graph, with points on a plane, using their euclidean distance as weights
+for u in coords:
+    for v in coords:
+        link = rs.uniform(0.0, 1.0) < p_link
+        if not link or u == v:
+            continue
+
+        G.add_edge(u, v, weight=dist(u, v))
+
+
+source, target = coords[0], coords[-1]
+# Use the euclidean distance to target as the lower bound heuristic for remaining path length
+path = a_star(G, source, target, heuristic=lambda n: dist(n, target))
+length = a_star(G, source, target, heuristic=lambda n: dist(n, target), return_path=False)
+
+assert length == G.compute_path_length(path)
+assert length == dijkstra_path_length(G, source, target)
+```
+
 
 # Automata & Formal Languages
 This section concerns formal language theory, along with the associated automata theory.
