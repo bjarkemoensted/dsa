@@ -8,6 +8,19 @@ from dsa.graphs.graph_class import Graph
 type NeighborGetter[N] = Callable[[N], Iterator[tuple[N, int|float]]]
 
 
+def reconstruct_path[N](camefrom: dict[N, N], target: N) -> list[N]:
+    """Given a dict of predecessor nodes (so {u: v} means that we arrive to node v via node u), and a target node,
+    this reconstructs the full path and returns it"""
+    # Build the reverse path, starting with the final node
+    path = [target]
+    # Keep adding the previous node until we run out
+    while path[-1] in camefrom:
+        path.append(camefrom[path[-1]])
+    # Reverse it in-place and return the path
+    path.reverse()
+    return path
+
+
 def _iterate_dijkstra_path_lengths[N](
         from_: N,
         neighbor_getter: NeighborGetter[N]
@@ -76,13 +89,7 @@ def dijkstra_path[N](G: Graph[N], source: N, target: N) -> list[N]:
 
         # We're done if we pop the target node
         if u == target:
-            # Reconstruct the (reverse) path
-            path = [u]
-            while path[-1] in camefrom:
-                path.append(camefrom[path[-1]])
-            # Return the path
-            path.reverse()
-            return path
+            return reconstruct_path(camefrom=camefrom, target=target)
 
         for v, delta in G.successors(u):            
             # Path length to v via u
@@ -95,6 +102,7 @@ def dijkstra_path[N](G: Graph[N], source: N, target: N) -> list[N]:
                 camefrom[v] = u
 
     raise NoPathError
+
 
 def single_source_dijkstra_path_lengths[N](G: Graph[N], source: N) -> dict[N, int|float]:
     dists = _iterate_dijkstra_path_lengths(from_=source, neighbor_getter=G.successors)
@@ -124,6 +132,7 @@ def has_path[N](G: Graph[N], source: N, target: N) -> bool:
         front = {v for u in front for v, _ in G.successors(u) if v not in visited}
 
     return False
+
 
 @overload
 def a_star[N](
@@ -179,16 +188,10 @@ def a_star[N](
 
         # If we find the target, return the path/length
         if u == target:
-            # If not returning path, just return the length
-            if not return_path:
+            if return_path:
+                return reconstruct_path(camefrom, target)
+            else:
                 return d_g[u]
-            path = [u]
-
-            # Otherwise, reconstruct the path
-            while path[-1] in camefrom:
-                path.append(camefrom[path[-1]])
-            path.reverse()
-            return path
 
         # Look at the neighbors of u
         for v, delta in G.successors(u):
@@ -202,3 +205,34 @@ def a_star[N](
                 camefrom[v] = u
 
     raise NoPathError
+
+
+def single_source_bellman_ford_paths[N](G: Graph[N], source: N) -> tuple[dict[N, N], dict[N, int|float]]:
+    """Determine all shortest paths from a given source node, using the Bellman-Ford algorithm.
+    Returns a tuple of
+    1) The predecessors dict, and
+    2) Shortest distance dict (target node as key and path kength as value)"""
+
+    camefrom: dict[N, N] = {}
+    dists: dict[N, int|float] = {source: 0}
+
+    for _ in range(len(G.nodes())):
+        for u, v, delta in G.iter_edge_weights():
+            d_tentative = dists.get(u, float("inf")) + delta
+            improved = d_tentative < dists.get(v, float("inf"))
+            if improved:
+                dists[v] = d_tentative
+                camefrom[v] = u
+            #
+        #
+    return camefrom, dists
+
+
+def bellman_ford_path[N](G: Graph[N], source: N, target: N) -> list[N]:
+    """Uses the Bellman-Ford algorithm to determine the shortest path from source to target node"""
+    camefrom, dists = single_source_bellman_ford_paths(G, source)
+
+    if target not in dists:
+        raise NoPathError
+
+    return reconstruct_path(camefrom, target=target)

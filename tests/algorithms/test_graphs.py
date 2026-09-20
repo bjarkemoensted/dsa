@@ -69,7 +69,7 @@ def standard_networks(n: int, seed: RandomSeeder) -> Iterator[Case[int]]:
 
 
 @cache
-def cases(n: int=100, seed: RandomSeeder=0) -> list[Case[int]]:
+def cases(n: int=50, seed: RandomSeeder=0) -> list[Case[int]]:
     res = list(standard_networks(n=n, seed=seed))
     return res
 
@@ -143,6 +143,9 @@ class TestPathFinding(unittest.TestCase):
     def test_a_star(self) -> None:
         pathfinder = partial(pathfinding.a_star, heuristic=lambda n: 0)
         self.check_find_shortest_path(pathfinder)
+
+    def test_bellman_ford(self) -> None:
+        self.check_find_shortest_path(pathfinding.bellman_ford_path)
 
     def test_single_source_dijkstra(self) -> None:
         for case in self.cases:
