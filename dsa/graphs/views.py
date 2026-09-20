@@ -29,7 +29,9 @@ class ViewBase[N: Hashable](abc.ABC):
 
 
 class EdgeViewBase[N](ViewBase[N]):
-    pass
+    @abc.abstractmethod
+    def __iter__(self) -> Iterator[tuple[N, N]]:
+        raise NotImplementedError
 
 
 class EdgeView[N: Hashable](EdgeViewBase[N]):
