@@ -225,9 +225,17 @@ def single_source_bellman_ford_paths[N](G: Graph[N], source: N) -> tuple[dict[N,
                 camefrom[v] = u
             #
         #
+    
+    # TODO: CHECK NEGATIVE CYCLES!!!
     return camefrom, dists
 
 
+# TODO There's a lot of boilerplate in keeping predecessors (camefrom) and dists updated, and
+# Using various algorithms to construct single-source/single-target path lengths + paths.
+# Consider having a class which is initialized with the graph and a source/target node.
+# Then we can abstract away the iteration (like _iterate_dijkstra_path_lengths does currently),
+# Store predecessor + dist dicts at the class, and use class methods like .path, .dist .all_dists, all_paths
+# to compute the different quantities.
 def bellman_ford_path[N](G: Graph[N], source: N, target: N) -> list[N]:
     """Uses the Bellman-Ford algorithm to determine the shortest path from source to target node"""
     camefrom, dists = single_source_bellman_ford_paths(G, source)
