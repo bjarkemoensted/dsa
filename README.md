@@ -19,6 +19,7 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Random graphs](#random-graphs)
   - [Dijkstra's algorithm](#dijkstras-algorithm)
   - [A\*](#a)
+  - [Bellman-Ford](#bellman-ford)
 - [Automata \& Formal Languages](#automata--formal-languages)
   - [Regular languages \& Finite State Automata](#regular-languages--finite-state-automata)
     - [Finite State Automata](#finite-state-automata)
@@ -408,6 +409,11 @@ assert length == G.compute_path_length(path)
 assert length == dijkstra_path_length(G, source, target)
 ```
 
+## Bellman-Ford
+The Bellman-Ford algorithm is similar to Dijkstra, but has the advantage of also functioning for graphs with negative weights.
+The existance of a negative cycle raises an error, however, as no shortest path can exist in the presence of a reachable negative cycle.
+It's implemented following CLRS section 24.1.
+Rather than initializing shortest distances to infinity and predecessors to NIL, we use a dict for storing both, with missing keys interpreted accordingly when encountered.
 
 # Automata & Formal Languages
 This section concerns formal language theory, along with the associated automata theory.
