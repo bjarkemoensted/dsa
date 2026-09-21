@@ -244,3 +244,55 @@ def bellman_ford_path[N](G: Graph[N], source: N, target: N) -> list[N]:
         raise NoPathError
 
     return reconstruct_path(camefrom, target=target)
+
+
+def floyd_warshall[N](G: Graph[N]) -> dict[N, dict[N, float|int]]:
+    """TODO copied from old coursework. Go over!!!"""
+    import math
+
+    import numpy as np
+    # Initialize solution matrix
+    node_list = list(G.nodes())
+    rev = {node: i for i, node in enumerate(node_list)}
+    n = len(G.nodes())
+    A = np.ndarray(shape = (n,n,n+1))
+    A.fill(float('inf'))
+    
+    # set up base cases
+    for (u, v, w) in G.iter_edge_weights():
+        A[rev[u], rev[v], 0] = w
+    
+    for i in range(n):
+        A[i,i,0] = 0
+    
+    count = 0
+    for k in range(1, n+1):
+        for i in range(n):
+            for j in range(n):
+                case1 = A[i,j,k-1]  # If k isn't in the path
+                case2 = A[i,k-1,k-1] + A[k-1,j,k-1]  #If k gets plucked
+                
+                A[i,j,k] = min(case1, case2)
+                count += 1
+            #
+        #
+    #
+    
+    shortest = float('inf')
+    for i in range(n):
+        for j in range(n):
+            val = A[i,j,n]
+            if i == j and val < 0:
+                raise RuntimeError("Negative cycle")
+            if val < shortest:
+                shortest = val
+            #
+        #
+    
+    best = A[:, :, n]
+    res = {
+        node_list[ui]:
+            {node_list[vi]: round(w) for vi, w in enumerate(row) if not math.isinf(w)}
+            for ui, row in enumerate(best)
+        }
+    return res
