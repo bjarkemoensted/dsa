@@ -175,3 +175,8 @@ class TestPathFinding(unittest.TestCase):
                 expected = nx.has_path(case.G_nx, source=u, target=v)
                 found = pathfinding.has_path(case.G, source=u, target=v)
                 self.assertIs(found, expected)
+
+    def test_floyd_warshall(self) -> None:
+        for case in self.cases:
+            dists = pathfinding.floyd_warshall(case.G)
+            self.assertDictEqual(dists, case.dists)
