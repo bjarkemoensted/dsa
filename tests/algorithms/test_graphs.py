@@ -1,12 +1,12 @@
 import unittest
 from dataclasses import dataclass, field
 from functools import cache, partial
-from typing import Hashable, Iterable, Iterator, Protocol
+from typing import Any, Callable, Hashable, Iterable, Iterator, Protocol
 
 import networkx as nx
 
 from dsa.graphs import pathfinding, random_graphs
-from dsa.graphs.exceptions import NoPathError
+from dsa.graphs.exceptions import CycleError, NoPathError
 from dsa.graphs.graph_class import DiGraph, Graph
 from dsa.utils.randomization import RandomSeeder, make_random_state
 
@@ -146,6 +146,16 @@ class TestPathFinding(unittest.TestCase):
 
     def test_bellman_ford(self) -> None:
         self.check_find_shortest_path(pathfinding.bellman_ford_path)
+        func = partial(pathfinding.bellman_ford_path, source=0, target=1)
+        self.check_detects_negative_cycle(func)
+
+    def check_detects_negative_cycle(self, func: Callable[[Graph], Any]) -> None:
+        G = random_graphs.barabasi_albert(n=10, m=2, seed=0)
+        G.add_edge(0, 1, weight=0)
+        G.add_edge(1, 0, weight=-1)
+
+        with self.assertRaises(CycleError):
+            func(G)
 
     def test_single_source_dijkstra(self) -> None:
         for case in self.cases:
@@ -178,5 +188,8 @@ class TestPathFinding(unittest.TestCase):
 
     def test_floyd_warshall(self) -> None:
         for case in self.cases:
+            print(case.title)  # !!!
             dists = pathfinding.floyd_warshall(case.G)
             self.assertDictEqual(dists, case.dists)
+
+        self.check_detects_negative_cycle(pathfinding.floyd_warshall)

@@ -4,3 +4,7 @@ class GraphError(Exception):
 
 class NoPathError(GraphError):
     pass
+
+
+class CycleError(GraphError):
+    pass
