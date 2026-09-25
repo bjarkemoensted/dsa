@@ -1,7 +1,7 @@
 from typing import Callable, Iterator, Literal, overload
 
 from dsa.data_structures.linear.priority_queue import PriorityQueue
-from dsa.graphs.exceptions import NoPathError
+from dsa.graphs.exceptions import CycleError, NoPathError
 from dsa.graphs.graph_class import Graph
 
 # For a callable yielding the neighbors and their distances to a given node
@@ -211,22 +211,39 @@ def single_source_bellman_ford_paths[N](G: Graph[N], source: N) -> tuple[dict[N,
     """Determine all shortest paths from a given source node, using the Bellman-Ford algorithm.
     Returns a tuple of
     1) The predecessors dict, and
-    2) Shortest distance dict (target node as key and path kength as value)"""
+    2) Shortest distance dict (target node as key and path kength as value).
+    If a negative weight cycle is detected, a CycleError is raised"""
 
+    # Initialize perdecessors and short distance dicts
     camefrom: dict[N, N] = {}
     dists: dict[N, int|float] = {source: 0}
 
-    for _ in range(len(G.nodes())):
+    # Do n passes - the final one detects negative weight cycles
+    n = len(G.nodes())
+    
+    for i in range(n+1):
+        improved_any = False
+        final_iteration = i == n
+
         for u, v, delta in G.iter_edge_weights():
+            # Check if we can improve the current best path to v by going source -> u -> v
             d_tentative = dists.get(u, float("inf")) + delta
             improved = d_tentative < dists.get(v, float("inf"))
+            # Update the known best paths and predecessors if we can improve the path
             if improved:
                 dists[v] = d_tentative
                 camefrom[v] = u
+                improved_any = True
             #
-        #
+        
+        # If there's no negative weight cycles, we're done after n-1 iterations
+        if final_iteration and improved_any:
+            # Improvement during the final iteration indicates a negative weight cycle
+            raise CycleError("Negative weight cycle detected")
+        elif not improved_any:
+            # If any iteration does not improve the best paths, we can terminate early
+            break
     
-    # TODO: CHECK NEGATIVE CYCLES!!!
     return camefrom, dists
 
 
@@ -247,52 +264,40 @@ def bellman_ford_path[N](G: Graph[N], source: N, target: N) -> list[N]:
 
 
 def floyd_warshall[N](G: Graph[N]) -> dict[N, dict[N, float|int]]:
-    """TODO copied from old coursework. Go over!!!"""
-    import math
+    """Floyd-Warshall algorithm for finding all shortst path on a graph.
+    Raises a CycleError if a negative weight cycle exists (because no shortest path exists in that case).
+    Return format: {u1: {v1: d11, v2: d12, ..}, ...}"""
 
-    import numpy as np
-    # Initialize solution matrix
-    node_list = list(G.nodes())
-    rev = {node: i for i, node in enumerate(node_list)}
-    n = len(G.nodes())
-    A = np.ndarray(shape = (n,n,n+1))
-    A.fill(float('inf'))
-    
-    # set up base cases
-    for (u, v, w) in G.iter_edge_weights():
-        A[rev[u], rev[v], 0] = w
-    
-    for i in range(n):
-        A[i,i,0] = 0
-    
-    count = 0
-    for k in range(1, n+1):
-        for i in range(n):
-            for j in range(n):
-                case1 = A[i,j,k-1]  # If k isn't in the path
-                case2 = A[i,k-1,k-1] + A[k-1,j,k-1]  #If k gets plucked
-                
-                A[i,j,k] = min(case1, case2)
-                count += 1
-            #
-        #
-    #
-    
-    shortest = float('inf')
-    for i in range(n):
-        for j in range(n):
-            val = A[i,j,n]
-            if i == j and val < 0:
-                raise RuntimeError("Negative cycle")
-            if val < shortest:
-                shortest = val
-            #
-        #
-    
-    best = A[:, :, n]
-    res = {
-        node_list[ui]:
-            {node_list[vi]: round(w) for vi, w in enumerate(row) if not math.isinf(w)}
-            for ui, row in enumerate(best)
-        }
+    # Get a list of the nodes, just so they're ordered
+    nodes = list(G.nodes())
+
+    # Initialize known shortest dists as all edges u -> v 
+    dists: dict[tuple[N, N], int|float] = {}
+    for u in nodes:
+        for v, cost in G.successors(u):
+            dists[(u, v)] = cost
+        dists[(u, u)] = 0
+
+    # Try improving all known shortest path by rerouting via any intermediary node w
+    for w in nodes:
+        for u in nodes:
+            for v in nodes:
+                # Compare the costs of the current best known path u -> v, with u -> w -> v
+                current_cost = dists.get((u, v), float("inf"))
+                intermediary_cost = dists.get((u, w), float("inf")) + dists.get((w, v), float("inf"))
+
+                # If going via the intermediary node w improves the path, update the best known path
+                improved = intermediary_cost < current_cost
+                if improved:
+                    dists[(u, v)] = intermediary_cost
+
+    # Check for negative weight cycles
+    if any(dists.get((u, u), 0) < 0 for u in nodes):
+        raise CycleError("Graph contains a negative weight cycle")
+
+    # Unpack distances, mapping each node u to {v1: d1, ...}
+    res: dict[N, dict[N, int|float]] = {node: {} for node in nodes}
+    for (u, v), cost in dists.items():
+        res[u][v] = cost
+
     return res
