@@ -20,6 +20,8 @@ As I mainly use this repo for self-study of various CS problems, I'll often refe
   - [Dijkstra's algorithm](#dijkstras-algorithm)
   - [A\*](#a)
   - [Bellman-Ford](#bellman-ford)
+  - [Floyd-Warshall](#floyd-warshall)
+  - [Johnson's algorithm](#johnsons-algorithm)
 - [Automata \& Formal Languages](#automata--formal-languages)
   - [Regular languages \& Finite State Automata](#regular-languages--finite-state-automata)
     - [Finite State Automata](#finite-state-automata)
@@ -414,6 +416,42 @@ The Bellman-Ford algorithm is similar to Dijkstra, but has the advantage of also
 The existance of a negative cycle raises an error, however, as no shortest path can exist in the presence of a reachable negative cycle.
 It's implemented following CLRS section 24.1.
 Rather than initializing shortest distances to infinity and predecessors to NIL, we use a dict for storing both, with missing keys interpreted accordingly when encountered.
+
+## Floyd-Warshall
+The Floyd-Warshall algorithm finds the shortest distance between all pairs of nodes.
+It also works on graphs with negative edge weights (provided there are no negative weight cycles).
+It works by initially considering the shortest paths between pairs of nodes which use only a single edge.
+The self-distance for all nodes is thus initialized as 0, and the distances for nodes (u, v) are initialized as the edge weight if an edge u -> v exists.
+If no edge exists, the distance is considered as infinite.
+We use a dict to represent the shortest known distances, and do not represent infinity explicitly, but rather omit pairs with no known path from the dict.
+
+For every node w in the graph, the algorithm considers all known shortest paths between all pairs u -> v, and replaces the path length with the length of u -> w -> v if that is shorter.
+The initial distances (defined before looping over any nodes) can be interpreted as the shortest distances u -> v, considering only paths with 0 intermediary nodes.
+Each iteration of the outer loop increments the number of allowed intermediary nodes by one, so that after completing the loops, the result contains the shortest lengths of paths where all nodes may appear as intermediary nodes once.
+Allowing each node to occur once in the shortest path is never really a constraint, unless there are negative weight cycles in the graph.
+The algorithm can easily check for such cycles by checking if any node has a negative shortest path to itself, in which case an error is raised.
+The algorithm is cubic in the number of nodes, because it considers every combination of nodes u, v, and w.
+
+## Johnson's algorithm
+Similar to Floyd-Warshall, Johnson's algorithm finds the shortest distances between all pairs of nodes in a graph, allowing negative weights.
+It works by using a reweighting trick to transform its input graph (which may contain negative weights) into an equivalent graph, in which all shortest paths visit the same sequence of nodes, but all weights are non-negative.
+The shortest path lengths on the transformed graph are then found using Dijkstra's algorithm, and the reverse transform is applied to them to compute the original shortest path lengths.
+
+The implementation here broadly follows CLRS section 25.3, with some minor differences.
+The transformation in CLRS is explained in terms of adding a new 'super source' node $s$, which is connected to all existing nodes with edge weights 0.
+Bellman-Ford is then used to determine the shortest path lengths $h(v)$ from the new source node to all other nodes $v$.
+The transformed graph is then created by transforming the edge weights by $w_{uv} \rightarrow w_{uv} + h(u) - h(v)$.
+This is the step which guarantees non-negative weights - $h(v)$ is a lower bound on any path going to $v$, so subtracting it from edge weights ensures that all paths have non-negative lengths.
+I find the logic easier to follow by considering any path starting from $s$.
+Because $s$ has no ingoing edges, $h(s) = 0$.
+The length of the path $(s, u)$ is then $w_{su} + h(s) - h(u) = -h(u)$.
+The path $(s, u, v)$ has length $w_{uv} - h(u) + h(u) - h(v) = w_{uv} - h(v)$, so by induction, all path lengths are shifted up by the most negative length possible to the final node in the path.
+The lengths of all paths which have their first and last nodes in common are shifted by the same amount, meaning they have the same ordering, so the shortest paths are unchanged in the transformed graph.
+
+Rather than defining a new graph with the additional source node, I run Bellman-Ford using every node as a source node, which gives the same result (the shortest path to all nodes, starting from any node).
+For the Dijkstra step, a dictionary of the transformed weights are passed along with the graph for looking up neighbors and weights.
+In cases where the graph contains negative weight cycles, the Bellman-Ford step raises an appropriate error.
+
 
 # Automata & Formal Languages
 This section concerns formal language theory, along with the associated automata theory.
