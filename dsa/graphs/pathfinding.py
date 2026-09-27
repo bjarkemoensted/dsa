@@ -1,11 +1,11 @@
-from typing import Callable, Iterator, Literal, overload
+from typing import Callable, Iterable, Iterator, Literal, overload
 
 from dsa.data_structures.linear.priority_queue import PriorityQueue
 from dsa.graphs.exceptions import CycleError, NoPathError
 from dsa.graphs.graph_class import Graph
 
 # For a callable yielding the neighbors and their distances to a given node
-type NeighborGetter[N] = Callable[[N], Iterator[tuple[N, int|float]]]
+type NeighborGetter[N] = Callable[[N], Iterable[tuple[N, int|float]]]
 
 
 def reconstruct_path[N](camefrom: dict[N, N], target: N) -> list[N]:
@@ -207,7 +207,7 @@ def a_star[N](
     raise NoPathError
 
 
-def single_source_bellman_ford_paths[N](G: Graph[N], source: N) -> tuple[dict[N, N], dict[N, int|float]]:
+def single_source_bellman_ford_paths[N](G: Graph[N], *source: N) -> tuple[dict[N, N], dict[N, int|float]]:
     """Determine all shortest paths from a given source node, using the Bellman-Ford algorithm.
     Returns a tuple of
     1) The predecessors dict, and
@@ -216,7 +216,7 @@ def single_source_bellman_ford_paths[N](G: Graph[N], source: N) -> tuple[dict[N,
 
     # Initialize perdecessors and short distance dicts
     camefrom: dict[N, N] = {}
-    dists: dict[N, int|float] = {source: 0}
+    dists: dict[N, int|float] = {node: 0 for node in source}
 
     # Do n passes - the final one detects negative weight cycles
     n = len(G.nodes())
@@ -247,12 +247,6 @@ def single_source_bellman_ford_paths[N](G: Graph[N], source: N) -> tuple[dict[N,
     return camefrom, dists
 
 
-# TODO There's a lot of boilerplate in keeping predecessors (camefrom) and dists updated, and
-# Using various algorithms to construct single-source/single-target path lengths + paths.
-# Consider having a class which is initialized with the graph and a source/target node.
-# Then we can abstract away the iteration (like _iterate_dijkstra_path_lengths does currently),
-# Store predecessor + dist dicts at the class, and use class methods like .path, .dist .all_dists, all_paths
-# to compute the different quantities.
 def bellman_ford_path[N](G: Graph[N], source: N, target: N) -> list[N]:
     """Uses the Bellman-Ford algorithm to determine the shortest path from source to target node"""
     camefrom, dists = single_source_bellman_ford_paths(G, source)
@@ -299,5 +293,26 @@ def floyd_warshall[N](G: Graph[N]) -> dict[N, dict[N, float|int]]:
     res: dict[N, dict[N, int|float]] = {node: {} for node in nodes}
     for (u, v), cost in dists.items():
         res[u][v] = cost
+
+    return res
+
+
+def johnson[N](G: Graph[N]) -> dict[N, dict[N, float|int]]:
+    """Johnson's algorithm for all pairs shortest paths.
+    Returns a dict like {u: {v: d, ...}, ...}.
+    If a negative cycle exists, an error is raised from the Bellman-Ford algorithm"""
+
+    # Run Bellman-Ford from all nodes - equivalent to starting from a new nodes connected to all with w=0
+    _, h = single_source_bellman_ford_paths(G, *G.nodes())
+    # Transform weights as w -> w + h(u) - h(v), where h(x) is the shortest distance to node x, starting from any node
+    reweighted = {u: tuple((v, w + h[u] - h[v]) for v, w in G.successors(u)) for u in G.nodes()}
+
+    # The transformed graph conserves structure, so run Dijkstra and to the inverse transform on path lengths
+    res: dict[N, dict[N, int|float]] = {node: {} for node in G.nodes()}
+    for u in G.nodes():
+        dists = _iterate_dijkstra_path_lengths(from_=u, neighbor_getter=reweighted.__getitem__)
+        for v, delta_hat in dists:
+            d = delta_hat - h[u] + h[v]
+            res[u][v] = d
 
     return res

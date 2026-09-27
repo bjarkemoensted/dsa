@@ -193,3 +193,11 @@ class TestPathFinding(unittest.TestCase):
             self.assertDictEqual(dists, case.dists)
 
         self.check_detects_negative_cycle(pathfinding.floyd_warshall)
+
+    def test_johnson(self) -> None:
+        for case in self.cases:
+            print(case.title)
+            dists = pathfinding.johnson(case.G)
+            self.assertDictEqual(dists, case.dists)
+
+        self.check_detects_negative_cycle(pathfinding.johnson)
