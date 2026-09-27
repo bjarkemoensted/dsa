@@ -4,9 +4,11 @@ from collections.abc import Iterable, Iterator
 from itertools import count
 from typing import Literal, Self, cast, overload
 
-from dsa.data_structures.linear.base import BaseContainer, Sentinel
+from dsa.data_structures.linear.base import BaseContainer
+from dsa.utils import Sentinel
 
-NIL = Sentinel()
+# Sentinel for marking the end of a linked list
+NIL = Sentinel("NIL")
 
 
 class Node[T]:

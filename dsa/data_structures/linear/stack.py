@@ -1,9 +1,6 @@
 from typing import Iterator
 
-from dsa.data_structures.linear.base import DEFAULT_ARR_SIZE, BaseContainer, Sentinel
-
-# Represents an element which has been allocated but not yet set
-NOT_SET = Sentinel()
+from dsa.data_structures.linear.base import DEFAULT_ARR_SIZE, BaseContainer, Sentinel, UNALLOCATED
 
 
 class Stack[T](BaseContainer[T]):
@@ -16,7 +13,7 @@ class Stack[T](BaseContainer[T]):
     def __init__(self, maxsize: int=-1):
         super().__init__(maxsize=maxsize)
         initial_size = maxsize if maxsize != -1 else DEFAULT_ARR_SIZE
-        self.arr = [NOT_SET for _ in range(initial_size)]
+        self.arr = [UNALLOCATED for _ in range(initial_size)]
         self.top = -1  # pointer to the top of the stack
 
     def size(self) -> int:
@@ -56,5 +53,5 @@ class Stack[T](BaseContainer[T]):
         return res
 
     def _grow_array(self) -> None:
-        new_vals = (NOT_SET for _ in range(len(self.arr)))
+        new_vals = (UNALLOCATED for _ in range(len(self.arr)))
         self.arr.extend(new_vals)

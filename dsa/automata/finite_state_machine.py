@@ -3,24 +3,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Self
 
-
-class Epsilon:
-    """Singleton for epsilon-transitions.
-    This is just to avoid using None to represent the input for an epsilon
-    transition, as None might be a valid character in an alphabet as well"""
-
-    _inst: Self|None = None
-
-    def __new__(cls) -> Self:
-        if cls._inst is None:
-            cls._inst = super().__new__(cls)
-        return cls._inst
-
-    def __repr__(self) -> str:
-        return "ε"
+from dsa.utils import Sentinel
 
 
-EPSILON = Epsilon()
+# Sentinel representing the empty string
+EPSILON = Sentinel("ε")
 
 
 @dataclass
@@ -78,7 +65,7 @@ class DFA[Q, S](AutomatonBase):
 
 @dataclass
 class NFA[Q, S](AutomatonBase):
-    transitions: dict[tuple[Q, S|Epsilon], set[Q]]
+    transitions: dict[tuple[Q, S|Sentinel], set[Q]]
 
     def is_valid(self) -> bool:
         # Require the set of states to contain all states in the transition rules

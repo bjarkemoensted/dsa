@@ -8,7 +8,7 @@ from functools import singledispatchmethod
 from itertools import count
 from typing import Literal, Self, TypeIs, cast, get_args
 
-from dsa.automata.finite_state_machine import EPSILON, NFA, Epsilon
+from dsa.automata.finite_state_machine import EPSILON, NFA, Sentinel
 
 
 class ParseError(Exception):
@@ -273,9 +273,9 @@ class Fragment[Q, S]:
 
     initial_state: Q
     final_state: Q
-    transitions: defaultdict[tuple[Q, S|Epsilon], set[Q]] = field(default_factory=lambda: defaultdict(set))
+    transitions: defaultdict[tuple[Q, S|Sentinel], set[Q]] = field(default_factory=lambda: defaultdict(set))
 
-    def add_transition(self, u: Q, v: Q, char: S|Epsilon=EPSILON) -> Self:
+    def add_transition(self, u: Q, v: Q, char: S|Sentinel=EPSILON) -> Self:
         """Adds a transition from one state to another.
         If no character is provided, the state is inferred to be an epsilon-transition"""
         self.transitions[(u, char)].add(v)

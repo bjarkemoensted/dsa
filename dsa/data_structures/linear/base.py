@@ -3,14 +3,13 @@
 from abc import ABC, abstractmethod
 from typing import Iterator
 
+from dsa.utils import Sentinel
+
+
 DEFAULT_ARR_SIZE = 8
-
-
-class Sentinel:
-    """Reserved class for objects with special meanings.
-    This is to have a class that's guaranteed to convey a special meaning, rather than e.g.
-    using None, which may cause ambiguity if e.g. None can mean both 'missing value' or a value of None"""
-    pass
+# For representing space not yet allocated to a list/stack/etc. In a low-level implementation, this would
+# just be the value of the allocated memory
+UNALLOCATED = Sentinel()
 
 
 class BaseContainer[T](ABC):

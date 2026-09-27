@@ -2,9 +2,7 @@
 
 from typing import Iterator
 
-from dsa.data_structures.linear.base import DEFAULT_ARR_SIZE, BaseContainer, Sentinel
-
-NOT_SET = Sentinel()
+from dsa.data_structures.linear.base import DEFAULT_ARR_SIZE, BaseContainer, Sentinel, UNALLOCATED
 
 
 class Queue[T](BaseContainer[T]):
@@ -19,7 +17,7 @@ class Queue[T](BaseContainer[T]):
         super().__init__(maxsize=maxsize)
         
         initial_size = maxsize + 1 if maxsize != -1 else DEFAULT_ARR_SIZE
-        self.arr = [NOT_SET for _ in range(initial_size)]
+        self.arr = [UNALLOCATED for _ in range(initial_size)]
         self.head = 0
         self.tail = 0
 
@@ -38,7 +36,7 @@ class Queue[T](BaseContainer[T]):
     def _grow_array(self) -> None:
         inds = ((self.head + i) % len(self.arr) for i in range(self.size()))
         vals = [self.arr[i] for i in inds]
-        self.arr = [NOT_SET for _ in range(2*self.size())]
+        self.arr = [UNALLOCATED for _ in range(2*self.size())]
         for i, val in enumerate(vals):
             self.arr[i] = val
     
