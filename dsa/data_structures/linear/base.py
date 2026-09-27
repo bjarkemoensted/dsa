@@ -5,7 +5,6 @@ from typing import Iterator
 
 from dsa.utils import Sentinel
 
-
 DEFAULT_ARR_SIZE = 8
 # For representing space not yet allocated to a list/stack/etc. In a low-level implementation, this would
 # just be the value of the allocated memory

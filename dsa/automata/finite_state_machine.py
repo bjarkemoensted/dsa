@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Self
 
 from dsa.utils import Sentinel
-
 
 # Sentinel representing the empty string
 EPSILON = Sentinel("ε")

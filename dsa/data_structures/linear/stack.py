@@ -1,6 +1,6 @@
 from typing import Iterator
 
-from dsa.data_structures.linear.base import DEFAULT_ARR_SIZE, BaseContainer, Sentinel, UNALLOCATED
+from dsa.data_structures.linear.base import DEFAULT_ARR_SIZE, UNALLOCATED, BaseContainer, Sentinel
 
 
 class Stack[T](BaseContainer[T]):
