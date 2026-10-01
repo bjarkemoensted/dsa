@@ -3,9 +3,7 @@ from collections.abc import Sequence
 from itertools import product
 from typing import Any
 
-from dsa.automata.automaton_base import AutomatonBase
-from dsa.automata.dfa import DFA
-from dsa.automata.nfa import EPSILON, NFA
+from dsa.automata import DFA, EPSILON, NFA, AutomatonBase
 
 dfa_kwargs_1: dict[str, Any] = {
     "states": {"q1", "q2"},

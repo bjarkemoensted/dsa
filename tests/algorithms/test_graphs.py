@@ -188,7 +188,6 @@ class TestPathFinding(unittest.TestCase):
 
     def test_floyd_warshall(self) -> None:
         for case in self.cases:
-            print(case.title)  # !!!
             dists = pathfinding.floyd_warshall(case.G)
             self.assertDictEqual(dists, case.dists)
 

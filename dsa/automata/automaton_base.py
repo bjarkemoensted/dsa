@@ -6,6 +6,8 @@ from dsa.utils import Sentinel
 
 # Sentinel representing the empty string
 EPSILON = Sentinel("ε")
+# And one for the empty stack (for pushdown automata)
+EMPTY_STACK = Sentinel("$")
 
 
 @dataclass
