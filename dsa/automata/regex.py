@@ -8,7 +8,7 @@ from functools import singledispatchmethod
 from itertools import count
 from typing import Literal, Self, TypeIs, cast, get_args
 
-from dsa.automata.finite_state_machine import EPSILON, NFA, Sentinel
+from dsa.automata.nfa import EPSILON, NFA, Sentinel
 
 
 class ParseError(Exception):

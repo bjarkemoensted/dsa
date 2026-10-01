@@ -1,3 +1,3 @@
-from .finite_state_machine import DFA as DFA
-from .finite_state_machine import EPSILON as EPSILON
-from .finite_state_machine import NFA as NFA
+from .dfa import DFA as DFA
+from .nfa import EPSILON as EPSILON
+from .nfa import NFA as NFA

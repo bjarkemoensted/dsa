@@ -1,64 +1,8 @@
-from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
+from dsa.automata.automaton_base import EPSILON, AutomatonBase
 from dsa.utils import Sentinel
-
-# Sentinel representing the empty string
-EPSILON = Sentinel("ε")
-
-
-@dataclass
-class AutomatonBase[Q, S](ABC):
-    """Base class for automata"""
-
-    states: set[Q]
-    alphabet: set[S]
-    initial_state: Q
-    final_states: set[Q]
-
-    def __post_init__(self) -> None:
-        if not self.is_valid():
-            raise RuntimeError(f"Invalid automaton: {self}")
-
-    def is_valid(self) -> bool:
-        """Checks whether the automaton is valid"""
-        requirements = (
-            self.initial_state in self.states,
-            self.final_states.issubset(self.states)
-        )
-
-        return all(requirements)
-
-    @abstractmethod
-    def accepts(self, string: Sequence[S]) -> bool:
-        """Check whether the automaton recognizes some string"""
-        raise NotImplementedError
-
-
-@dataclass
-class DFA[Q, S](AutomatonBase):
-    """Deterministic finite state automaton. Follows section 1.1 in Sipser"""
-
-    transitions: dict[tuple[Q, S], Q] = field(default_factory=dict)
-
-    def is_valid(self) -> bool:
-        # Require the set of states to contain all states in the transition rules
-        transition_states = set().union(*({u, v} for (u, _), v in self.transitions.items()))
-        res = transition_states.issubset(self.states) and super().is_valid()
-        return res
-
-    def accepts(self, string: Sequence[S]) -> bool:
-        state = self.initial_state
-        for character in string:
-            if character not in self.alphabet:
-                return False
-            try:
-                state = self.transitions[(state, character)]
-            except KeyError:
-                return False
-
-        return state in self.final_states
 
 
 @dataclass
