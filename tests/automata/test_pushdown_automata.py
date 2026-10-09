@@ -5,15 +5,15 @@ from dsa.automata import EMPTY_STACK, EPSILON, PDA, AutomatonBase
 from dsa.utils import Sentinel
 
 # Define the pushdown automaton of example 2.14 in Sipser, which recognizes {0^n 1^n | n >= 0}.
-_pda_trans1: dict[tuple[str, int|Sentinel, int|Sentinel], tuple[str, int|Sentinel]] = {
-    ("q1", EPSILON, EPSILON): ("q2", EMPTY_STACK),
-    ("q2", 0, EPSILON): ("q2", 0),
-    ("q2", 1, 0): ("q3", EPSILON),
-    ("q3", 1, 0): ("q3", EPSILON),
-    ("q3", EPSILON, EMPTY_STACK): ("q4", EPSILON)
+_pda_trans1: dict[tuple[str, int|Sentinel, int|Sentinel], set[tuple[str, int|Sentinel]]] = {
+    ("q1", EPSILON, EPSILON): {("q2", EMPTY_STACK)},
+    ("q2", 0, EPSILON): {("q2", 0)},
+    ("q2", 1, 0): {("q3", EPSILON)},
+    ("q3", 1, 0): {("q3", EPSILON)},
+    ("q3", EPSILON, EMPTY_STACK): {("q4", EPSILON)}
 }
 
-pda1: PDA[str, int] = PDA(
+pda1: PDA[str, int, int] = PDA(
     states={"q1", "q2", "q3", "q4"},
     alphabet={0, 1},
     initial_state="q1",

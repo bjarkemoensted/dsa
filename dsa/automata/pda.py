@@ -23,24 +23,22 @@ def _push[T](stack: tuple[T|Sentinel, ...], elem: T|Sentinel) -> tuple[T|Sentine
 
 
 @dataclass
-class PDA[Q, S](AutomatonBase):
+class PDA[Q, S, SA](AutomatonBase):
     """Pushdown automaton. Follows section 2.2 in Sipser"""
 
-    stack_alphabet: set[S]  # TODO do we need to explicitly pass this? Or simpler to just assume same alphabet?
-    transitions: dict[tuple[Q, S|Sentinel, S|Sentinel], tuple[Q, S|Sentinel]] = field(default_factory=dict)
+    stack_alphabet: set[SA]  # TODO do we need to explicitly pass this? Or simpler to just assume same alphabet?
+    transitions: dict[tuple[Q, S|Sentinel, SA|Sentinel], set[tuple[Q, SA|Sentinel]]] = field(default_factory=dict)
 
     def is_valid(self) -> bool:
         # Require the set of states to contain all states in the transition rules
         trans_from = (q for q, _, _ in self.transitions)
-        trans_to = (q for q, _ in self.transitions.values())
+        trans_to = (q for tups in self.transitions.values() for q, _ in tups)
         transition_states = set().union(trans_from, trans_to)
 
         transition_states_valid = transition_states.issubset(self.states)
-        stack_alphabet_valid = self.stack_alphabet.issubset(self.alphabet)
 
         parts = (
             transition_states_valid,
-            stack_alphabet_valid,
             super().is_valid()
         )
         res = all(parts)
@@ -49,29 +47,27 @@ class PDA[Q, S](AutomatonBase):
     def lookup_transitions(
             self,
             input_symbol: S|Sentinel,
-            configurations: Iterable[Configuration[Q, S]],
-            ) -> Iterator[Configuration[Q, S]]:
+            configurations: Iterable[Configuration[Q, SA]],
+            ) -> Iterator[Configuration[Q, SA]]:
         """Given a current configuration and an input symbol, determines the subsequent configuration,
         if any (None is returned if no transition is allowed)"""
 
         for c in configurations:
             # Attempt to proceed popping nothing (epsilon) from the stack
-            transition_nopop = self.transitions.get((c.state, input_symbol, EPSILON))
-            if transition_nopop is not None:
-                q, s = transition_nopop
-                yield Configuration(q, _push(c.stack, s))
+            transitions_nopop = self.transitions.get((c.state, input_symbol, EPSILON))
+            if transitions_nopop is not None:
+                yield from (Configuration(q, _push(c.stack, s)) for q, s in transitions_nopop)
 
             # Attempt to consume from stack
             if not c.stack:
                 continue
             stack_symbol = c.stack[-1]
-            transition_pop = self.transitions.get((c.state, input_symbol, stack_symbol))
-            if transition_pop is not None:
-                q, s = transition_pop
-                yield Configuration(q, _push(c.stack[:-1], s))
+            transitions_pop = self.transitions.get((c.state, input_symbol, stack_symbol))
+            if transitions_pop is not None:
+                yield from (Configuration(q, _push(c.stack[:-1], s)) for q, s in transitions_pop)
         
-    def epsilon_closure(self, configurations: set[Configuration[Q, S]]) -> set[Configuration[Q, S]]:
-        seen: set[Configuration[Q, S]] = configurations
+    def epsilon_closure(self, configurations: set[Configuration[Q, SA]]) -> set[Configuration[Q, SA]]:
+        seen: set[Configuration[Q, SA]] = configurations
         front = configurations
 
         while front:
@@ -81,7 +77,7 @@ class PDA[Q, S](AutomatonBase):
         return seen
 
     def accepts(self, string: Sequence[S]) -> bool:
-        c0: Configuration[Q, S] = Configuration(
+        c0: Configuration[Q, SA] = Configuration(
             state=self.initial_state,
             stack=()
         )
