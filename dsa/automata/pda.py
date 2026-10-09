@@ -1,8 +1,11 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from itertools import count
 from typing import Iterable, Iterator
 
-from dsa.automata.automaton_base import EPSILON, AutomatonBase
+from dsa.automata.automaton_base import EMPTY_STACK, EPSILON, AutomatonBase
+from dsa.formal_languages.grammar import CFG
+from dsa.formal_languages.types import Nonterminal
 from dsa.utils import Sentinel
 
 
@@ -93,3 +96,81 @@ class PDA[Q, S, SA](AutomatonBase):
 
         res = any(c.state in self.final_states for c in running)
         return res
+
+
+
+# TODO Cleanup and add tests!!!
+def make_pda(cfg: CFG) -> PDA[int, str, str|Nonterminal]:
+    node_gen = count(start=0, step=1)
+
+    q_i = next(node_gen)
+    q_pre = next(node_gen)
+    q_loop = next(node_gen)
+    q_f = -1
+
+    S = cfg.start_symbol
+
+    # TODO consider making states, alphabet, stack alphabet optional, and inferring from transitions if not provided!!!
+    transitions: dict[tuple[int, str|Sentinel, str|Sentinel|Nonterminal], set[tuple[int, str|Sentinel|Nonterminal]]] = {
+        (q_i, EPSILON, EPSILON): {(q_pre, EMPTY_STACK)},
+        (q_pre, EPSILON, EPSILON): {(q_loop, S)},
+        (q_loop, EPSILON, EMPTY_STACK): {(q_f, EPSILON)}
+        #("q2", 0, EPSILON): ("q2", 0),
+    }
+
+    def add_transition(
+            u: int,
+            input_symbol: str|Sentinel,
+            stack_symbol: str|Sentinel|Nonterminal,
+            v: int,
+            new_stack_sym: str|Sentinel|Nonterminal
+            ) -> None:
+        
+        nonlocal transitions
+        key_ = (u, input_symbol, stack_symbol)
+        if key_ not in transitions:
+            transitions[key_] = set()
+        transitions[key_].add((v, new_stack_sym))
+
+    def add_chain(nt: Nonterminal, production: tuple[str|Nonterminal, ...]) -> None:
+        nonlocal node_gen
+        u = q_loop
+        if len(production) == 0:
+            add_transition(u, EPSILON, nt, u, EPSILON)
+            return
+
+        # TODO has to be a more elegant way of doing this!!!
+        v = u
+        for i, symbol in enumerate(reversed(production)):
+            last = i == len(production) - 1
+            first = i == 0
+            v = q_loop if last else next(node_gen)
+            consume = nt if first else EPSILON
+            add_transition(u, EPSILON, consume, v, symbol)
+            u = v
+
+
+    for symbol in cfg.terminals:
+        # Add a transition which just pops the symbol from the stack
+        add_transition(q_loop, symbol, symbol, q_loop, EPSILON)
+
+    for nt, productions in cfg.productions.items():
+        for prod in productions:
+            add_chain(nt, prod)
+
+    k, v = zip(*transitions.items())
+    stack_alphabet = {elem for _, elem, _ in k} | {elem for out in v for _, elem in out}
+    states = {elem for elem, _, _ in k} | {elem for v_ in v for elem, _ in v_}
+    alphabet = {elem for _, elem, _ in k}
+
+
+    res: PDA[int, str, str|Nonterminal] = PDA(
+        states=states,
+        alphabet=alphabet,
+        initial_state=q_i,
+        final_states={q_f},  # !!!
+        stack_alphabet=stack_alphabet,
+        transitions=transitions,
+    )
+
+    return res
