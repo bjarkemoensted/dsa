@@ -3,7 +3,6 @@ from collections import defaultdict
 import numpy as np
 from numpy.typing import NDArray
 
-from dsa.formal_languages.cnf_tools import chomsky_normal_form
 from dsa.formal_languages.grammar import CFG
 from dsa.formal_languages.parse_trees import ParseForest, ParseForestNode, ParseNode
 from dsa.formal_languages.types import Nonterminal, SentenceType
@@ -21,7 +20,7 @@ class CYKParser:
         assume_cnf: If True, assumed the grammar is already on Chomsky Normal Form, and proceeds without
             converting it. If False, the grammar is converted into CNF."""
 
-        self.G = G if assume_cnf else chomsky_normal_form(G)
+        self.G = G if assume_cnf else G.to_CNF()
         # Mapping from nonterminals to their index
         self.nonterms_inv = {nt: i for i, nt in enumerate(self.G.nonterminals)}
         

@@ -2,8 +2,10 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator
 from copy import deepcopy
 from itertools import combinations
+from typing import TYPE_CHECKING
 
-from dsa.formal_languages.grammar import CFG
+if TYPE_CHECKING:
+    from dsa.formal_languages.grammar import CFG
 from dsa.formal_languages.types import Nonterminal, ProductionType, SententialType
 
 
@@ -401,13 +403,3 @@ class CNFConverter:
     def convert(self) -> None:
         for func in self.steps:
             func()
-
-
-def chomsky_normal_form(G: CFG) -> CFG:
-    """Converts a grammar into an equivalent CNF grammar."""
-
-    converter = CNFConverter(start_symbol=G.start_symbol, productions=G.productions)
-    converter.convert()
-    res = CFG(start_symbol=converter.start_symbol, production_rules=converter.production_rules)
-
-    return res

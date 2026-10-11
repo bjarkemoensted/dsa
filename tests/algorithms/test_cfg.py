@@ -82,7 +82,7 @@ class TestUselessSymbolDetection(unittest.TestCase):
         any nonterm, so it's crucial to allow the start symbol to act as a source node."""
         
         for ex in cfg_examples.all_examples:
-            for G in (ex.grammar, cnf_tools.chomsky_normal_form(ex.grammar)):
+            for G in (ex.grammar, ex.grammar.to_CNF()):
                 useless = cnf_tools.get_useless_symbols(G)
                 msg = f"Example {ex.name} labelled start symbol {G.start_symbol} as useless"
                 self.assertNotIn(G.start_symbol, useless, msg)
@@ -212,7 +212,7 @@ class TestCNF(unittest.TestCase):
         )
 
         for ex, cnf in grammars_with_cnf_status:
-            self.assertIs(cnf_tools.grammar_is_cnf(ex.grammar), cnf, f"CNF detection failed for '{ex.name}'")
+            self.assertIs(ex.grammar.is_CNF(), cnf, f"CNF detection failed for '{ex.name}'")
     
     def test_cnf_conversion_retains_grammar(self) -> None:
         """Brute forces all sentences up to some length for some grammars.
@@ -223,15 +223,15 @@ class TestCNF(unittest.TestCase):
 
         for G in self.grammars:
             sentences = set(G.brute_force_sentences(n_tokens))
-            G_cnf = cnf_tools.chomsky_normal_form(G)
+            G_cnf = G.to_CNF()
             sentences_cnf = set(G_cnf.brute_force_sentences(n_tokens))
             self.assertSetEqual(sentences, sentences_cnf)
     
     def test_cnf_after_conversion(self) -> None:
         for ex in self.examples:
             G = ex.grammar
-            G_cnf = cnf_tools.chomsky_normal_form(G)
-            self.assertTrue(cnf_tools.grammar_is_cnf(G_cnf), f"Example {ex.name} not CNF")
+            G_cnf = G.to_CNF()
+            self.assertTrue(G_cnf.is_CNF(), f"Example {ex.name} not CNF")
 
 
 class TestCFGMembership(unittest.TestCase):

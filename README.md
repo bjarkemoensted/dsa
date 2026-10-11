@@ -624,12 +624,11 @@ Functionality for converting a grammar to Chomsky Normal Form (CNF) is also avai
 
 <!--pytest-codeblocks:cont-->
 ```python
-from dsa.formal_languages import chomsky_normal_form, grammar_is_cnf
 
-assert not grammar_is_cnf(G)
+assert not G.is_CNF()
 
-G_cnf = chomsky_normal_form(G)
-assert grammar_is_cnf(G_cnf)
+G_cnf = G.to_CNF()
+assert G_cnf.is_CNF()
 
 ```
 
