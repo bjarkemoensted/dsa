@@ -3,7 +3,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Self, Unpack
 
-from dsa.formal_languages import cnf_tools, parse_trees
+from dsa.formal_languages import conversion_tools, parse_trees
 from dsa.formal_languages.types import (
     InvalidGrammarError,
     Nonterminal,
@@ -108,10 +108,16 @@ class CFG:
         return res
 
     def to_CNF(self) -> Self:
-        return chomsky_normal_form(self)
+        return conversion_tools.chomsky_normal_form(self)
 
     def is_CNF(self) -> bool:
-        return cnf_tools.grammar_is_cnf(self)
+        return conversion_tools.grammar_is_cnf(self)
+
+    def to_GNF(self) -> Self:
+        return conversion_tools.greibach_normal_form(self)
+
+    def is_GNF(self) -> bool:
+        return conversion_tools.grammar_is_gnf(self)
 
 
 def check_grammar_is_valid(G: CFG) -> None:
@@ -146,13 +152,3 @@ def check_grammar_is_valid(G: CFG) -> None:
     _missing = sorted(set(G.nonterminals) - set(G.productions.keys()))
     if _missing:
         raise InvalidGrammarError(f"Some nonterminals have no productions: {', '.join(map(str, _missing))}")
-
-
-def chomsky_normal_form[T: CFG](G: T) -> T:
-    """Converts a grammar into an equivalent CNF grammar."""
-
-    converter = cnf_tools.CNFConverter(start_symbol=G.start_symbol, productions=G.productions)
-    converter.convert()
-    res = G.__class__(start_symbol=converter.start_symbol, production_rules=converter.production_rules)
-
-    return res

@@ -100,7 +100,7 @@ class PDA[Q, S, SA](AutomatonBase):
 
 
 # TODO Cleanup and add tests!!!
-def make_pda(cfg: CFG) -> PDA[int, str, str|Nonterminal]:
+def pda_from_cfg(cfg: CFG) -> PDA[int, str, str|Nonterminal]:
     node_gen = count(start=0, step=1)
 
     q_i = next(node_gen)

@@ -1,3 +1,5 @@
+"""Contains utils for converting context-free grammars into various forms"""
+
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator
 from copy import deepcopy
@@ -50,43 +52,6 @@ def get_useless_symbols(G: CFG) -> list[Nonterminal]:
     useless = set(G.nonterminals) - useful
 
     return sorted(useless)
-
-
-def grammar_is_cnf(G: CFG, allow_empty_string_from_start: bool=True) -> bool:
-    """Determines whether a grammar is CNF.
-    Following Hopcroft & Ullman, CNF is defined as:
-    1) No 'useless symbols' (nonterminals that are unreachable or have no productions)
-    2) Only productions rules of the forms:
-        I)    A → BC
-        II)   A → a
-        III)  S → ε (if we allow empty strings from the start symbol)
-    
-    Allowing the special case where the start symbol may produce an empty string
-    makes some things a bit more complicated, but allowes CNF grammars to produce empty strings.
-    """
-    
-    # non-CNF if there are useless symbols
-    useless_symbols = get_useless_symbols(G)
-    if len(useless_symbols) != 0:
-        return False
-    
-    # Check for empty productions, or rules that aren't splits (A → BC) or string productions (A → a)
-    for nonterm, prods in G.productions.items():
-        empty_ok = allow_empty_string_from_start and nonterm == G.start_symbol
-        for p in prods:
-            # Check empty
-            empty = len(p) == 0
-
-            # Check A → BC or A → a
-            split = len(p) == 2 and all(isinstance(nt, Nonterminal) for nt in p)
-            string_ = len(p) == 1 and all(isinstance(s, str) for s in p)
-
-            # Check if the production has one of the three (I - III) forms allowed.
-            cnf_rules_sat = split or string_ or (empty and empty_ok)
-            if not cnf_rules_sat:
-                return False
-    
-    return True
 
     
 class SymbolGenerator:
@@ -403,3 +368,105 @@ class CNFConverter:
     def convert(self) -> None:
         for func in self.steps:
             func()
+
+
+def chomsky_normal_form[T: CFG](G: T) -> T:
+    """Converts a grammar into an equivalent CNF grammar."""
+
+    converter = CNFConverter(start_symbol=G.start_symbol, productions=G.productions)
+    converter.convert()
+    res = G.__class__(start_symbol=converter.start_symbol, production_rules=converter.production_rules)
+
+    return res
+
+
+def grammar_is_cnf(G: CFG, allow_empty_string_from_start: bool=True) -> bool:
+    """Determines whether a grammar is CNF.
+    Following Hopcroft & Ullman, CNF is defined as:
+    1) No 'useless symbols' (nonterminals that are unreachable or have no productions)
+    2) Only productions rules of the forms:
+        I)    A → BC
+        II)   A → a
+        III)  S → ε (if we allow empty strings from the start symbol)
+    
+    Allowing the special case where the start symbol may produce an empty string
+    makes some things a bit more complicated, but allowes CNF grammars to produce empty strings.
+    """
+    
+    # non-CNF if there are useless symbols
+    useless_symbols = get_useless_symbols(G)
+    if len(useless_symbols) != 0:
+        return False
+    
+    # Check for empty productions, or rules that aren't splits (A → BC) or string productions (A → a)
+    for nonterm, prods in G.productions.items():
+        empty_ok = allow_empty_string_from_start and nonterm == G.start_symbol
+        for p in prods:
+            # Check empty
+            empty = len(p) == 0
+
+            # Check A → BC or A → a
+            split = len(p) == 2 and all(isinstance(nt, Nonterminal) for nt in p)
+            string_ = len(p) == 1 and all(isinstance(s, str) for s in p)
+
+            # Check if the production has one of the three (I - III) forms allowed.
+            cnf_rules_sat = split or string_ or (empty and empty_ok)
+            if not cnf_rules_sat:
+                return False
+    
+    return True
+
+
+def greibach_normal_form[T: CFG](G: T) -> T:
+    """Converts a grammar into an equivalent GNF grammar.
+    Follows section 7.1 in Hopcroft & Ullman"""
+
+    # !!!
+    # TODO eisther make a new converter class, or make the existing one more generic, exposing CNF/GNF-specific methods
+    converter = CNFConverter(start_symbol=G.start_symbol, productions=G.productions)
+
+    # Eliminate epsilon-productions.
+    converter._del()
+    # Eliminate any unit productions in the resulting grammar.
+    converter._unit()
+    # Eliminate any useless symbols in the resulting grammar.
+    # !!!
+    temp = G.__class__(start_symbol=converter.start_symbol, production_rules=converter.production_rules)
+    print("USELESS", get_useless_symbols(temp))
+    # Put the resulting grammar into Chomsky Normal Form.
+    converter.convert()
+    res = G.__class__(start_symbol=converter.start_symbol, production_rules=converter.production_rules)
+
+    return res
+
+
+def grammar_is_gnf(G: CFG, allow_empty_string_from_start: bool=True) -> bool:
+    """Determines whether a grammar is on Greibach Normal Form (GNF).
+    Following Hopcroft & Ullman, GNF is defined as a grammar whose productions are one of
+    I)    S → ε (if we allow empty strings from the start symbol)
+    II)   A → aX*
+    where S is the start symbol, a is a terminal, and X* denotes a sequence of zero or more nonterminals.
+    This form ensures that a string of length n requires n production steps.
+    """
+
+    # non-GNF if there are useless symbols
+    useless_symbols = get_useless_symbols(G)
+    if len(useless_symbols) != 0:
+        return False
+
+    for nt, prods in G.productions.items():
+        for prod in prods:
+            empty = len(prod) == 0
+            if empty:
+                # okay if empty strings are allowed, and if it's produced by the start symbol
+                if allow_empty_string_from_start and nt == G.start_symbol:
+                    continue
+                return False
+
+            char_first = not isinstance(prod[0], Nonterminal)
+            nonterms_second = all(isinstance(p, Nonterminal) for p in prod[1:])
+            if not (char_first and nonterms_second):
+                return False
+            #
+        
+    return True

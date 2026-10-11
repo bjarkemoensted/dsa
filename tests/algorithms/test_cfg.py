@@ -3,7 +3,7 @@ import typing
 import unittest
 from collections import Counter
 
-from dsa.formal_languages import cnf_tools
+from dsa.formal_languages import conversion_tools
 from dsa.formal_languages.cyk import CYKParser
 from dsa.formal_languages.grammar import CFG
 from dsa.formal_languages.parse_trees import (
@@ -83,7 +83,7 @@ class TestUselessSymbolDetection(unittest.TestCase):
         
         for ex in cfg_examples.all_examples:
             for G in (ex.grammar, ex.grammar.to_CNF()):
-                useless = cnf_tools.get_useless_symbols(G)
+                useless = conversion_tools.get_useless_symbols(G)
                 msg = f"Example {ex.name} labelled start symbol {G.start_symbol} as useless"
                 self.assertNotIn(G.start_symbol, useless, msg)
 
@@ -106,7 +106,7 @@ class TestUselessSymbolDetection(unittest.TestCase):
         }
 
         G = CFG(g, S)
-        useless = set(cnf_tools.get_useless_symbols(G))
+        useless = set(conversion_tools.get_useless_symbols(G))
         truly_useless = {B, C}
         self.assertSetEqual(useless, truly_useless)
 
@@ -130,7 +130,7 @@ class TestCNF(unittest.TestCase):
         This is to simplify testing that individual steps work."""
         
         for G in self.grammars:
-            converter = cnf_tools.CNFConverter(
+            converter = conversion_tools.CNFConverter(
                 start_symbol=G.start_symbol,
                 productions=G.productions
             )
@@ -198,7 +198,7 @@ class TestCNF(unittest.TestCase):
 
     def test_useless_symbol_detection(self) -> None:
         G = cfg_examples.example_useless.grammar
-        useless_symbols = cnf_tools.get_useless_symbols(G)
+        useless_symbols = conversion_tools.get_useless_symbols(G)
         self.assertGreater(len(useless_symbols), 0)
 
     def test_cnf_detection(self) -> None:
