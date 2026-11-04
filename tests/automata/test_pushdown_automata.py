@@ -63,13 +63,15 @@ _cfg_examples = (
 
 
 # !!!!!
-# class TestCFGExamples(unittest.TestCase):
-#     def test_pda_conversion(self) -> None:
-#         for ex in cfg_examples.all_examples:
-#             pda = pda_from_cfg(ex.grammar)
-#             print(f"*** {ex.name} ***")
-#             for sentence, producible in ex.sentences:
-#                 print(sentence)
-#                 accepted = pda.accepts(sentence)
+class TestCFGExamples(unittest.TestCase):
+    def test_pda_conversion(self) -> None:
+        for ex in cfg_examples.all_examples:
+            print(ex)
+            continue
+            pda = pda_from_cfg(ex.grammar)
+            print(f"*** {ex.name} ***")
+            for sentence, producible in ex.sentences:
+                print(sentence)
+                accepted = pda.accepts(sentence)
                 
-#                 self.assertIs(accepted, producible)
+                self.assertIs(accepted, producible)

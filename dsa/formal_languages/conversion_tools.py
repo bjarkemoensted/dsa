@@ -4,11 +4,35 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator
 from copy import deepcopy
 from itertools import combinations
-from typing import TYPE_CHECKING
+from typing import Iterator, Literal, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from dsa.formal_languages.grammar import CFG
-from dsa.formal_languages.types import Nonterminal, ProductionType, SententialType
+from dsa.formal_languages.types import Nonterminal, ProductionType, SententialType, SymbolType
+
+
+
+def production_recurses(
+        head: Nonterminal,
+        body: SententialType,
+        direction: Literal["right", "left"]|None=None
+        ) -> bool:
+    """Determines whether a production head -> body recurses.
+    If direction is None (default), recursion at any point in the body is allowed.
+    Specify left/right to only look for left/right recursion, e.g.
+    A -> A<...>, or A -> <...>A, respectively"""
+    if len(body) == 0:
+        return False
+    recurses_at = tuple(isinstance(symbol, Nonterminal) and symbol == head for symbol in body)
+    match direction:
+        case "left":
+            return recurses_at[0]
+        case "right":
+            return recurses_at[-1]
+        case None:
+            return any(recurses_at)
+        case _:
+            raise RuntimeError(f"Invalid direction arg: {direction!r}")
 
 
 def get_useless_symbols(G: CFG) -> list[Nonterminal]:
@@ -308,7 +332,7 @@ class CNFConverter:
         # First, get all nonterminals which are nullable i.e. can produce the empty string
         nullable = _determine_nullable(self.production_rules)
         
-        # Add the rules needed to inline the nullable nonterminals
+        # Add the rules needed to inline the nullable nondef _delterminals
         for nt, prods in list(self.production_rules.items()):
             self.production_rules[nt] += _inline_nullable_powerset(prods, nullable)
         
@@ -417,10 +441,170 @@ def grammar_is_cnf(G: CFG, allow_empty_string_from_start: bool=True) -> bool:
     return True
 
 
+class GNFConverter:
+    def __init__(self, G: CFG) -> None:
+        self.start_symbol = G.start_symbol
+        self.production_rules = deepcopy(G.productions)
+
+        # Set up a renamer for when we need to introduce new nonterminals
+        self.nonterms = sorted(G.nonterminals)
+        self.nonterms_order = {nt: i for i, nt in enumerate(self.nonterms)}
+
+        self._new_symbol_generator = SymbolGenerator(nonterms=self.nonterms)
+
+    def make_new_symbol(self, nt: Nonterminal|str) -> tuple[int, Nonterminal]:
+        symbol = self._new_symbol_generator(nt)
+        if symbol in self.nonterms_order:
+            raise RuntimeError(f"New symbol {symbol!r} already exists")
+
+        ind = len(self.nonterms)
+        self.nonterms.append(symbol)
+        self.nonterms_order[symbol] = ind
+        return ind, symbol
+
+    def expand_left(self, ind: int) -> None:
+        """Removes productions of type A_i -> A_j<...> where j < i, by repeatedly
+        expanded A_j."""
+
+        nt = self.nonterms[ind]
+        final_: set[SententialType] = set()
+        front = set(self.production_rules.pop(nt))
+
+        while front:
+            next_: set[SententialType] = set()
+            for p in front:
+                if len(p) == 0 or not isinstance(p[0], Nonterminal):
+                    final_.add(p)
+                    continue
+                ind_j = self.nonterms_order[p[0]]
+                if ind == ind_j or ind_j > ind:
+                    final_.add(p)
+                else:
+                    for expanded in self.production_rules[p[0]]:
+                        next_.add(expanded+p[1:])
+            front = next_
+
+        self.production_rules[nt] = list(final_)
+
+    def _handle_left_recursion(self, ind: int) -> None:
+        nt = self.nonterms[ind]
+        prods = self.production_rules[nt]
+        recurse_inds = tuple(production_recurses(nt, p, direction="left") for p in prods)
+        if not any(recurse_inds):
+            return
+
+        recursive: list[SententialType] = []
+        nonrecursive: list[SententialType] = []
+        for recurses, p in zip(recurse_inds, prods, strict=True):
+            if recurses:
+                recursive.append(p)
+            else:
+                nonrecursive.append(p)
+
+        _, Z = self.make_new_symbol("Z")
+
+        # For every ending in e.g. X -> XAB, add a recursion rule like Z -> AB | ABZ
+        recursion_prods: list[SententialType] = []
+        for p in recursive:
+            ending = p[1:]
+            recursion_prods.append(ending)
+            recursion_prods.append(ending + (Z,))
+        self.production_rules[Z] = recursion_prods
+
+        # For all non left-recursive prods, add a recursion like X -> AB, add X -> ABZ
+        resolved: list[SententialType] = []
+        for nonrec in nonrecursive:
+            resolved.append(nonrec + (Z,))
+
+        self.production_rules[nt] = nonrecursive + resolved
+
+    def check_up_to(self, ind: int) -> None:
+        for i in range(ind+1):
+            nt = self.nonterms[i]
+            prods = self.production_rules[nt]
+            for p in prods:
+                if not p:
+                    continue
+                a = p[0]
+                if not isinstance(a, Nonterminal):
+                    continue
+                j = self.nonterms_order[a]
+                assert j > i
+
+    def _get_first_nonterm(self, p: SententialType) -> Nonterminal|None:
+        """Given a single production, returns the first symbol, if it is a nonterminal,
+        and None otherwise (also for empty productions).
+        For a grammar in GNF, this returns None for all productions."""
+
+        if len(p) == 0:
+            return None
+        first = p[0]
+        if isinstance(first, Nonterminal):
+            return first
+        else:
+            return None
+
+    def expand_final(self) -> None:
+        # TODO maybe combine with expand_left after we have tests to verify functionality!!!
+
+        _expanded_cache: dict[Nonterminal, list[SententialType]] = {}
+
+        def _expand_nonterminal(nt: Nonterminal) -> list[SententialType]:
+            """Repeatedly (left-)expands a nonterminal."""
+
+            nonlocal _expanded_cache
+            if nt in _expanded_cache:
+                return _expanded_cache[nt]
+
+            res_set: set[SententialType] = set()
+            for p in self.production_rules[nt]:
+                first = self._get_first_nonterm(p)
+                if first is None:
+                    res_set.add(p)
+                    continue
+                for exp in _expand_nonterminal(first):
+                    res_set.add(exp + p[1:])
+                #
+            res = list(res_set)
+            _expanded_cache[nt] = res
+            return res
+        
+        for i in reversed(range(len(self.nonterms))):
+            nt = self.nonterms[i]
+            gnf: list[SententialType] = []
+            for p in self.production_rules.pop(nt):
+                A = self._get_first_nonterm(p)
+                if A is None:
+                    gnf.append(p)
+                    continue
+                expanded = _expand_nonterminal(A)
+                gnf += list(expanded)
+            self.production_rules[nt] = gnf
+                
+
+    def convert(self) -> None:
+        ind = 0
+        while ind < len(self.nonterms):
+            n_nonterms = len(self.nonterms)
+            # TODO: This is the way!!!!!!!!!!!
+            # First do all substitutions, so after, all A_i produce only things starting with terminals or A_j where j >= i
+            # Then fix discovered recursions (j == i)
+            self.expand_left(ind)
+            self._handle_left_recursion(ind)
+
+            self.check_up_to(ind)
+            ind += 1
+
+        self.expand_final()
+        
+
+
 def greibach_normal_form[T: CFG](G: T) -> T:
     """Converts a grammar into an equivalent GNF grammar.
     Follows section 7.1 in Hopcroft & Ullman"""
 
+    if G.has_left_recursion():
+        raise NotImplementedError(f"Grammar contains left recursion - not yet implemented!!!!!")
     # !!!
     # TODO eisther make a new converter class, or make the existing one more generic, exposing CNF/GNF-specific methods
     converter = CNFConverter(start_symbol=G.start_symbol, productions=G.productions)
@@ -437,7 +621,18 @@ def greibach_normal_form[T: CFG](G: T) -> T:
     converter.convert()
     res = G.__class__(start_symbol=converter.start_symbol, production_rules=converter.production_rules)
 
+    ugh = GNFConverter(res)
+    ugh.convert()
+
+    res = G.__class__(
+        production_rules=ugh.production_rules,
+        start_symbol=ugh.start_symbol
+    )
+
+    # !!! TODO maybe just use this functino to handle production rules, so we don't have to (circular) import the CFG class...
+    # TODO need to remove useless symbols as well!!! Maybe handled by converting into CNF first?
     return res
+
 
 
 def grammar_is_gnf(G: CFG, allow_empty_string_from_start: bool=True) -> bool:
@@ -470,3 +665,39 @@ def grammar_is_gnf(G: CFG, allow_empty_string_from_start: bool=True) -> bool:
             #
         
     return True
+
+
+def productions_from_string(s: str) -> Iterator[tuple[Nonterminal, list[SententialType]]]:
+    """Takes a string representation of a grammar, and infers the productions.
+    E.g.
+        S → XA|BB
+        B → b|SB
+        X → b
+        A → a
+    
+    will iterate over (
+        S, [(X, A), (B, B)],
+        B, [('b',), (S, B)]
+    )
+
+    Uppercase chars are inferred as NonTerminals, and lowercase as terminals.
+    Use 'ε' for the empty string, and one of "→", "->", "-->" for arrows"""
+
+    arrows = ("→", "->", "-->")
+    lines = (line.strip() for line in s.splitlines() if line)
+    for line in lines:
+        arrow = next((arr for arr in arrows if arr in line), None)
+        if arrow is None:
+            raise RuntimeError(f"No arrow found in {line!r}. Use one of {', '.join([f'{a!r}' for a in arrows])}")
+        left, right = (s.strip() for s in line.split(arrow))
+        if not left.isupper():
+            raise RuntimeError(f"Left hand side must be upper case: {left!r}")
+        
+        LHS = Nonterminal(left)
+        RHS: list[SententialType] = []
+        parts = (s.strip() for s in right.split("|"))
+        for part in parts:
+            elems = (elem.strip() for elem in part)
+            prod = tuple(Nonterminal(e) if e.isupper() else e for e in elems if e != "ε")
+            RHS.append(prod)
+        yield LHS, RHS

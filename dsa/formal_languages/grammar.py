@@ -63,6 +63,17 @@ class CFG:
         for p in self.iter_rhs():
             yield from p
 
+    def iter_individual_productions(self) -> Iterator[tuple[Nonterminal, SententialType]]:
+        """Iterate over every individual production, e.g. for
+        S -> A | B | aB
+        this will iterate over
+        S, (A,)
+        S, (B,)
+        S, ('a', B)"""
+        for nt, prods in self.productions.items():
+            for prod in prods:
+                yield nt, prod
+
     @property
     def ascii(self) -> str:
         """Represents a grammar as a string, with production rules represented as e.g.
@@ -118,6 +129,29 @@ class CFG:
 
     def is_GNF(self) -> bool:
         return conversion_tools.grammar_is_gnf(self)
+
+    @classmethod
+    def from_string(cls, s: str) -> CFG:
+        production_items = list(conversion_tools.productions_from_string(s))
+        if not production_items:
+            raise RuntimeError(f"No productions found in string {s!r}")
+        start_symbol = production_items[0][0]
+        productions = {k: v for k, v in production_items}
+        res = cls(productions, start_symbol)
+        return res
+
+    def has_left_recursion(self) -> bool:
+        return any(
+            conversion_tools.production_recurses(head, body, direction="left")
+            for head, body in self.iter_individual_productions()
+        )
+        
+    def has_right_recursion(self) -> bool:
+        return any(
+            conversion_tools.production_recurses(head, body, direction="right")
+            for head, body in self.iter_individual_productions()
+        )
+        
 
 
 def check_grammar_is_valid(G: CFG) -> None:
